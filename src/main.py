@@ -7,7 +7,7 @@ from utils.dataloader import AneurysmDataset
 if __name__ == "__main__":
 
     data_path = os.path.join('src', 'data')  # modify if data not stored in HeiRysma/src/data
-    target_resolution = (560, 560, 140)  # modify here if other resolution needed
+    target_resolution = (64, 64, 64)  # modify here if other resolution needed
     batch_size = 6
 
     train = torch.utils.data.DataLoader(

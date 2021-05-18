@@ -57,8 +57,8 @@ def save_data_as_npy(data_path, data_orig, data_mask, data_orig_name, data_mask_
 
     if not os.path.exists(os.path.join(data_path, 'preprocessed')):
         os.makedirs(os.path.join(data_path, 'preprocessed'))
-    np.save(os.path.join(os.path.join(data_path, 'preprocessed'), data_orig_name) + '.npy', data_orig, allow_pickle=True)
-    np.save(os.path.join(os.path.join(data_path, 'preprocessed'), data_mask_name) + '.npy', data_mask, allow_pickle=True)
+    np.save(os.path.join(os.path.join(data_path, 'preprocessed'), data_orig_name) + '.npy', data_orig)
+    np.save(os.path.join(os.path.join(data_path, 'preprocessed'), data_mask_name) + '.npy', data_mask)
     print('DONE: npy arrays stored in data_path/preprocessed')
 
 
@@ -83,15 +83,16 @@ def load_data_from_npy(data_path, data_orig_name, data_mask_name):
             			List of (different shapes) npy arrays containing binary masks corresponding to data_orig.
     """
 
-    data_orig = np.load(os.path.join(os.path.join(data_path, 'preprocessed'), data_orig_name) + '.npy', allow_pickle=True)
-    data_mask = np.load(os.path.join(os.path.join(data_path, 'preprocessed'), data_mask_name) + '.npy', allow_pickle=True)
+    data_orig = np.load(os.path.join(os.path.join(data_path, 'preprocessed'), data_orig_name) + '.npy')
+    data_mask = np.load(os.path.join(os.path.join(data_path, 'preprocessed'), data_mask_name) + '.npy')
     print('DONE: npy arrays loaded from data_path/preprocessed')
     return  data_orig, data_mask
 
 
 def resize_width_height_skimage(data, target_resolution):
     """
-    Resizes the list of numpy arrays (e.g. 113x(.,.,.)) to the target_resolution (e.g. (560,560,140)) .
+    Resizes the list of numpy arrays (e.g. 113x(.,.,.)) to the target_resolution (e.g. (560,560,140)).
+    see https://scikit-image.org/docs/stable/auto_examples/transform/plot_rescale.html
 
     Parameters
     ----------
