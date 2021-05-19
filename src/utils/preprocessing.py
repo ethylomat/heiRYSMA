@@ -11,7 +11,7 @@ def load_niigz_as_npy(data_path):
     Parameters
     ----------
     data_path:  	    String
-                    	Path to the data folder.
+                    	Absolute path to the data folder.
 
     Returns
     -------
@@ -44,7 +44,7 @@ def save_data_as_npy(data_path, data_orig, data_mask, data_orig_name, data_mask_
     Parameters
     ----------
     data_path:  	    String
-                    	Path to the data folder.
+                    	Absolute path to the data folder.
     data_orig:		    list
             			List of (different shapes) npy arrays containing TOF MRA data.
     data_mask:		    list
@@ -69,7 +69,7 @@ def load_data_from_npy(data_path, data_orig_name, data_mask_name):
     Parameters
     ----------
     data_path:  	    String
-                    	Path to the data folder.
+                    	Absolute path to the data folder.
     data_orig_name:		String
             			Name of the data_orig file name without .npy ending.
     data_mask_name:		String

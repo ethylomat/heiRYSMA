@@ -11,7 +11,7 @@ class AneurysmDataset(torch.utils.data.Dataset):
         Parameters
         ----------
         data_path:          String
-                  	        Path to dir with all the (not processed) data.
+                  	        Absolute path to dir with all the (not processed) data.
         target_resolution:  tuple
                   	        Tuple for target resolution of data in form: (W, H, AmountSlices), e.g. (560, 560, 140).
         train:              bool
