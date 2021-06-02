@@ -29,6 +29,7 @@
 #export NUM_CORES=${SLURM_NTASKS}*${OMP_NUM_THREADS}
 #echo "${EXECUTABLE} running on ${NUM_CORES} cores with ${SLURM_NTASKS} MPI-tasks and ${OMP_NUM_THREADS} threads"
 
+module load jupyter/tensorflow
 runcommand="time mpirun -n ${SLURM_NTASKS} ${MPIRUN_OPTIONS} ${EXECUTABLE} > output"
 echo $runcommand
 exec $runcommand
