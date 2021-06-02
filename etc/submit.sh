@@ -15,10 +15,10 @@
 
 ####### Partition type (dev_single, single, dev_multiple, multiple, dev_multiple_e, multiple_e, fat, dev_gpu_4, gpu_4, gpu_8)
 # See: https://wiki.bwhpc.de/e/BwUniCluster_2.0_Batch_Queues
-#SBATCH --partition=dev_single
+#SBATCH --partition=dev_gpu_4
 
 ####### Resources
-#SBATCH --time=0-00:01:00
+#SBATCH --time=0-00:03:00
 #SBATCH --nodes=1
 
 

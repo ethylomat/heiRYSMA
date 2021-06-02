@@ -1,2 +1,2 @@
 #!/bin/bash
-python hello_world.py
+python ../src/main.py
