@@ -10,15 +10,15 @@
 #SBATCH --mail-type=END
 
 ####### Output
-#SBATCH --output=slurm-%j.out
-#SBATCH --error=slurm-%j.err
+#SBATCH --output=out/slurm-%j.out
+#SBATCH --error=err/slurm-%j.err
 
 ####### Partition type (dev_single, single, dev_multiple, multiple, dev_multiple_e, multiple_e, fat, dev_gpu_4, gpu_4, gpu_8)
 # See: https://wiki.bwhpc.de/e/BwUniCluster_2.0_Batch_Queues
 #SBATCH --partition=dev_single
 
 ####### Resources
-#SBATCH --time=0-01:00:00
+#SBATCH --time=0-00:01:00
 #SBATCH --nodes=1
 
 
@@ -29,7 +29,9 @@
 #export NUM_CORES=${SLURM_NTASKS}*${OMP_NUM_THREADS}
 #echo "${EXECUTABLE} running on ${NUM_CORES} cores with ${SLURM_NTASKS} MPI-tasks and ${OMP_NUM_THREADS} threads"
 
+#runcommand="time mpirun -n ${SLURM_NTASKS} ${MPIRUN_OPTIONS} ${EXECUTABLE} > output"
+
 module load jupyter/tensorflow
-runcommand="time mpirun -n ${SLURM_NTASKS} ${MPIRUN_OPTIONS} ${EXECUTABLE} > output"
+runcommand="time ${EXECUTABLE}"
 echo $runcommand
 exec $runcommand
