@@ -2,6 +2,9 @@ import numpy as np
 import nibabel as nib
 import os
 from skimage.transform import resize
+import cv2
+from cv2 import flip
+from cv2 import rotate
 
 
 def load_niigz_as_npy(data_path):
@@ -116,6 +119,35 @@ def resize_width_height_skimage(data, target_resolution):
     return resized_data_list
 
 
+def augment_data(data):
+    """
+    Augments the list of numpy arrays (e.g. 113x(.,.,.)).
+    see https://scikit-image.org/docs/stable/auto_examples/transform/plot_rescale.html
+
+    Parameters
+    ----------
+    data:		        list
+            			List of npy arrays (of different shapes).
+
+    Returns
+    -------
+    resized_data_list:	list
+            			List of npy arrays including augmented data (flipped horizontally + vertically and rotated 180 degrees).
+    """
+
+
+    augmented_data_list = []
+    for d in data:
+        flipVertical = flip(d, 0)
+        flipHorizontal = flip(d, 1)
+        rotate180 = rotate(d, cv2.ROTATE_180)
+        augmented_data_list.append(d)
+        augmented_data_list.append(flipVertical)
+        augmented_data_list.append(flipHorizontal)
+        augmented_data_list.append(rotate180)
+
+    print('DONE: augmenting images')
+    return augmented_data_list
 
 
 

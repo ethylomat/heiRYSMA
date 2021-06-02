@@ -10,6 +10,7 @@ class DenseNetSeg3D(nn.Module):
         self.batch_norm = nn.BatchNorm3d(num_features=32)
         self.relu = nn.ReLU()
 
+        # 64x64x64
         self.conv1 = nn.Conv3d(1, 32, kernel_size=(1, 1, 1), stride=(1, 1, 1))
         self.conv2 = nn.Conv3d(32, 32, kernel_size=(1, 1, 1), stride=(1, 1, 1))
         self.conv3 = nn.Conv3d(32, 32, kernel_size=(1, 1, 1), stride=(1, 1, 1))
@@ -21,7 +22,7 @@ class DenseNetSeg3D(nn.Module):
         self.reduction = 0.5
         self.in_channels = 32
 
-    def forward(self, x):
+    def forward(self, x, device):
         # 3x initial Convolution, after this layers output should be 64x64x64 and 32 channels
         x = self.conv1(x)
         x = self.batch_norm(x)
@@ -39,55 +40,57 @@ class DenseNetSeg3D(nn.Module):
         x = self.conv_down(x)
 
         # DenseBlock 1
-        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate)(x)
+        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).to(device)(x, device)
         self.in_channels = int(self.in_channels + self.growth_rate * 4)
 
         # Deconvolution 1
-        x2 = Deconvolution(in_channels=self.in_channels, kernel_size=(4, 4, 4), stride=(2, 2, 2))(x)
+        x2 = Deconvolution(in_channels=self.in_channels, kernel_size=(4, 4, 4), stride=(2, 2, 2)).to(device)(x)
 
         # Transition 1 -> includes Downsampling
-        x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction)(x)
+        x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).to(device)(x)
         self.in_channels = int(self.in_channels * self.reduction)
 
         # DenseBlock 2
-        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate)(x)
+        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).to(device)(x, device)
         self.in_channels = int(self.in_channels + self.growth_rate * 4)
 
         # Deconvolution 2
-        x3 = Deconvolution(in_channels=self.in_channels, kernel_size=(6, 6, 6), stride=(4, 4, 4))(x)
+        x3 = Deconvolution(in_channels=self.in_channels, kernel_size=(6, 6, 6), stride=(4, 4, 4)).to(device)(x)
 
         # Transition 2 -> includes Downsampling
-        x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction)(x)
+        x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).to(device)(x)
         self.in_channels = int(self.in_channels * self.reduction)
 
         # DenseBlock 3
-        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate)(x)
+        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).to(device)(x, device)
         self.in_channels = int(self.in_channels + self.growth_rate * 4)
 
         # Deconvolution 3
-        x4 = Deconvolution(in_channels=self.in_channels, kernel_size=(10,10,10), stride=(8,8,8))(x)
+        # 64x64x64
+        x4 = Deconvolution(in_channels=self.in_channels, kernel_size=(10,10,10), stride=(8,8,8)).to(device)(x)
 
         # Transition 3 -> includes Downsampling
-        x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction)(x)
+        x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).to(device)(x)
         self.in_channels = int(self.in_channels * self.reduction)
 
         # DenseBlock 4
-        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate)(x)
+        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).to(device)(x, device)
         self.in_channels = int(self.in_channels + self.growth_rate * 4)
 
-        x = nn.BatchNorm3d(self.in_channels)(x)
+        x = nn.BatchNorm3d(self.in_channels).to(device)(x)
         x = self.relu(x)
 
         # Deconvolution 4
-        x5 = Deconvolution(in_channels=self.in_channels, kernel_size=(18, 18, 18), stride=(16, 16, 16))(x)
+
+        #64x64x64
+        x5 = Deconvolution(in_channels=self.in_channels, kernel_size=(18, 18, 18), stride=(16, 16, 16)).to(device)(x)
 
         # concatenation of upscaled
         x = torch.cat([x5, x4, x3, x2, x1], dim=1)
 
-        x = nn.Conv3d(96, out_channels=2, kernel_size=(1, 1, 1), stride=(1, 1, 1))(x)
-        x = self.sigmoid(x)
-        #import numpy
-        #z = x.detach().numpy()
+        x = nn.Conv3d(96, out_channels=1, kernel_size=(1, 1, 1), stride=(1, 1, 1)).to(device)(x)
+
+        self.in_channels = 32
         return x
 
 
@@ -102,13 +105,13 @@ class DenseBlock(nn.Module):
         self.in_channels = in_channels
         self.growth_rate = growth_rate
 
-    def forward(self, x):
+    def forward(self, x, device):
         for i in range(self.n_layers):
             # increases with each layer e.g. start with 64 -> 96 -> 128..
             in_channels = int(i * self.growth_rate + self.in_channels)
 
             # in_channels are out_channels from the last layer
-            y = DenseLayer(in_channels, self.growth_rate)(x)
+            y = DenseLayer(in_channels, self.growth_rate).to(device)(x)
             x = torch.cat([x, y], dim=1)
         return x
 
