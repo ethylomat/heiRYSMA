@@ -22,7 +22,11 @@ class DenseNetSeg3D(nn.Module):
         self.reduction = 0.5
         self.in_channels = 32
 
-    def forward(self, x, device):
+    def forward(self, x, device, target_resolution):
+        x = torch.unsqueeze(x, 1)
+        x = x.float()
+        x = x.to(device)
+
         # 3x initial Convolution, after this layers output should be 64x64x64 and 32 channels
         x = self.conv1(x)
         x = self.batch_norm(x)
@@ -38,6 +42,7 @@ class DenseNetSeg3D(nn.Module):
 
         # first convolution for Downsampling
         x = self.conv_down(x)
+        x = x.to(device)
 
         # DenseBlock 1
         x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).to(device)(x, device)
@@ -66,8 +71,11 @@ class DenseNetSeg3D(nn.Module):
         self.in_channels = int(self.in_channels + self.growth_rate * 4)
 
         # Deconvolution 3
-        # 64x64x64
-        x4 = Deconvolution(in_channels=self.in_channels, kernel_size=(10,10,10), stride=(8,8,8)).to(device)(x)
+        if target_resolution == (128,128,100):
+            x4 = Deconvolution(in_channels=self.in_channels, kernel_size=(10, 10, 14), stride=(8, 8, 8)).to(device)(x)
+        else:
+            # 64x64x64 is default!
+            x4 = Deconvolution(in_channels=self.in_channels, kernel_size=(10,10,10), stride=(8,8,8)).to(device)(x)
 
         # Transition 3 -> includes Downsampling
         x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).to(device)(x)
@@ -81,9 +89,11 @@ class DenseNetSeg3D(nn.Module):
         x = self.relu(x)
 
         # Deconvolution 4
-
-        #64x64x64
-        x5 = Deconvolution(in_channels=self.in_channels, kernel_size=(18, 18, 18), stride=(16, 16, 16)).to(device)(x)
+        if target_resolution == (128,128,100):
+            x5 = Deconvolution(in_channels=self.in_channels, kernel_size=(18, 18, 22), stride=(16, 16, 16)).to(device)(x)
+        else:
+            #64x64x64 is default!
+            x5 = Deconvolution(in_channels=self.in_channels, kernel_size=(18, 18, 18), stride=(16, 16, 16)).to(device)(x)
 
         # concatenation of upscaled
         x = torch.cat([x5, x4, x3, x2, x1], dim=1)

@@ -1,17 +1,19 @@
 import torch
 import os
-from utils import preprocessing
+import numpy as np
+from src.utils import preprocessing
 
 
 class AneurysmDataset(torch.utils.data.Dataset):
     """Aneurysm dataset."""
 
-    def __init__(self, data_path, target_resolution, include_augmented_data=True, train=False):
+    def __init__(self, data_path, target_resolution, include_augmented_data, train_eval_test):
         """
         Args:
             data_path (string): Path to dir with all the (not processed) data.
-            train (bool, optional): If True, creates dataset from training set,
-            otherwise creates from test set.
+            target_resolution (tuple): 3 positional tuple containing the desired resolution of data, (W,H,Amount Slices) e.g. 64,64,100.
+            include_augmented_data (bool): True if augmented data should be included, else otherwise
+            train_eval_test (string): If train, creates dataset from training set, if eval creates dataset from eval set, otherwise creates from test set.
         """
         resized_file_name_orig = 'data_orig_' + str(target_resolution[0]) + '_' + str(target_resolution[1]) + '_' + str(target_resolution[2])
         resized_file_name_mask = 'data_mask_' + str(target_resolution[0]) + '_' + str(target_resolution[1]) + '_' + str(target_resolution[2])
@@ -24,7 +26,7 @@ class AneurysmDataset(torch.utils.data.Dataset):
         path_data_resized_mask = data_path + '/preprocessed/' + resized_file_name_mask + '.npy'
         path_data_orig = data_path + '/preprocessed/data_orig.npy'
 
-        print('INIT: Anerurysm Dataset, mode train activated: ' + str(train) + '...')
+        print('INIT: Anerurysm Dataset, mode train_eval_test activated: ' + str(train_eval_test) + '...')
 
         if (os.path.isfile(path_data_resized_orig) and os.path.isfile(path_data_resized_mask)):
             print('Resized data ' + str(target_resolution) + ' found. Loading in progress...')
@@ -43,26 +45,45 @@ class AneurysmDataset(torch.utils.data.Dataset):
                 self.data, self.mask = preprocessing.load_niigz_as_npy(data_path)
                 preprocessing.save_data_as_npy(data_path, self.data, self.mask, 'data_orig', 'data_mask')
 
-            self.data = preprocessing.resize_width_height_skimage(self.data, target_resolution = target_resolution)
-            self.mask = preprocessing.resize_width_height_skimage(self.mask, target_resolution = target_resolution)
+            self.data, self.mask = preprocessing.resize_width_height_skimage(self.data, self.mask,
+                                                                             target_resolution=target_resolution)
 
             if include_augmented_data:
-                 self.data = preprocessing.augment_data(self.data)
-                 self.mask = preprocessing.augment_data(self.mask)
+                 self.data, self.mask = preprocessing.augment_data(self.data, self.mask)
             preprocessing.save_data_as_npy(data_path, self.data, self.mask, resized_file_name_orig, resized_file_name_mask)
+
+        # shuffle always with same order
+        self.shuffle_data(data_path)
 
         # convert to torch tensors
         self.data = torch.tensor(self.data)
         self.mask = torch.tensor(self.mask)
 
-        if train:
-            self.data = self.data[:int(len(self.data)*0.7)]
-            self.mask = self.mask[:int(len(self.mask)*0.7)]
+        if train_eval_test == 'train':
+            self.data = self.data[:int(len(self.data) * 0.7)]
+            self.mask = self.mask[:int(len(self.mask) * 0.7)]
+        elif train_eval_test == 'eval':
+            self.data = self.data[int(len(self.data) * 0.7): int(len(self.data) * 0.85)]
+            self.mask = self.mask[int(len(self.data) * 0.7): int(len(self.mask) * 0.85)]
         else:
-            self.data = self.data[int(len(self.data)*0.7):]
-            self.mask = self.mask[int(len(self.mask)*0.7):]
+            self.data = self.data[int(len(self.data) * 0.85):]
+            self.mask = self.mask[int(len(self.mask) * 0.85):]
 
 
+
+    def shuffle_data(self, data_path):
+        shuffled_file_path = data_path + '/preprocessed/shuffling_order_' + str(len(self.mask)) + '.npy'
+
+        if (os.path.isfile(shuffled_file_path)): # search for shuffled data under the path above
+            shuffling_order = np.load(data_path + '/preprocessed/shuffling_order_' + str(len(self.mask)) + '.npy')
+        else:  # create new shuffling order and save as .npy
+            shuffling_order = np.arange(len(self.mask))
+            np.random.shuffle(shuffling_order)
+            np.save(data_path + '/preprocessed/shuffling_order_' + str(len(self.mask)) + '.npy', shuffling_order)
+
+        # shuffle with imported shuffled order
+        self.data = np.array(self.data)[shuffling_order]
+        self.mask = np.array(self.mask)[shuffling_order]
 
     def __len__(self):
         return len(self.data)

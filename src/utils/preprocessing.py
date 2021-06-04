@@ -92,10 +92,9 @@ def load_data_from_npy(data_path, data_orig_name, data_mask_name, allow_pickle=F
     return  data_orig, data_mask
 
 
-def resize_width_height_skimage(data, target_resolution):
+def resize_width_height_skimage(data_orig, data_mask, target_resolution):
     """
-    Resizes the list of numpy arrays (e.g. 113x(.,.,.)) to the target_resolution (e.g. (560,560,140)).
-    see https://scikit-image.org/docs/stable/auto_examples/transform/plot_rescale.html
+    Resizes the list of numpy arrays (e.g. 113x(.,.,.)) to the target_resolution (e.g. (560,560,140)) .
 
     Parameters
     ----------
@@ -109,17 +108,19 @@ def resize_width_height_skimage(data, target_resolution):
     resized_data_list:	list
             			List of npy arrays (of same, resized shape, e.g.: 113x560x560x140).
     """
-
-    resized_data_list = []
-    for d in data:
-        resized_data = resize(d, target_resolution)
-        resized_data_list.append(resized_data)
+    resized_data_orig_list = []
+    resized_data_mask_list = []
+    for i in range(len(data_orig)):
+        resized_data_orig = resize(data_orig[i], target_resolution)
+        resized_data_mask = resize(data_mask[i], target_resolution)
+        resized_data_orig_list.append(resized_data_orig)
+        resized_data_mask_list.append(resized_data_mask)
 
     print('DONE: resizing images')
-    return resized_data_list
+    return resized_data_orig_list, resized_data_mask_list
 
 
-def augment_data(data):
+def augment_data(data_orig, data_mask):
     """
     Augments the list of numpy arrays (e.g. 113x(.,.,.)).
     see https://scikit-image.org/docs/stable/auto_examples/transform/plot_rescale.html
@@ -132,22 +133,27 @@ def augment_data(data):
     Returns
     -------
     resized_data_list:	list
-            			List of npy arrays including augmented data (flipped horizontally + vertically and rotated 180 degrees).
+            			List of npy arrays including augmented data (flipped horizontally + vertically, rotated 180 degrees) and brighter 5%.
     """
+    augmented_data_list_orig = []
+    augmented_data_list_mask = []
+    for i in range(len(data_orig)):
+        flipVertical_orig = flip(data_orig[i], 0)
+        flipHorizontal_orig = flip(data_orig[i], 1)
+        rotate180_orig = rotate(data_orig[i], cv2.ROTATE_180)
+        brighter5percent_orig = data_orig[i] + int(data_orig[i].max() * 0.05)
+        augmented_data_list_orig.append([data_orig[i], flipVertical_orig, flipHorizontal_orig, rotate180_orig, brighter5percent_orig])
 
+        flipVertical_mask = flip(data_mask[i], 0)
+        flipHorizontal_mask = flip(data_mask[i], 1)
+        rotate180_mask = rotate(data_mask[i], cv2.ROTATE_180)
+        brighter5percent_mask = data_mask[i] + int(data_orig[i].max() * 0.05)
+        augmented_data_list_mask.append([data_mask[i], flipVertical_mask, flipHorizontal_mask, rotate180_mask, brighter5percent_mask])
 
-    augmented_data_list = []
-    for d in data:
-        flipVertical = flip(d, 0)
-        flipHorizontal = flip(d, 1)
-        rotate180 = rotate(d, cv2.ROTATE_180)
-        augmented_data_list.append(d)
-        augmented_data_list.append(flipVertical)
-        augmented_data_list.append(flipHorizontal)
-        augmented_data_list.append(rotate180)
-
+    augmented_data_list_orig = [item for sublist in augmented_data_list_orig for item in sublist]
+    augmented_data_list_mask = [item for sublist in augmented_data_list_mask for item in sublist]
     print('DONE: augmenting images')
-    return augmented_data_list
+    return augmented_data_list_orig, augmented_data_list_mask
 
 
 
