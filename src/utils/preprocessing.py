@@ -65,7 +65,7 @@ def save_data_as_npy(data_path, data_orig, data_mask, data_orig_name, data_mask_
     print('DONE: npy arrays stored in data_path/preprocessed')
 
 
-def load_data_from_npy(data_path, data_orig_name, data_mask_name):
+def load_data_from_npy(data_path, data_orig_name, data_mask_name, allow_pickle=False):
     """
     Loads the npy arrays to the list of npy arrays from the folder data/preprocessed.
 
@@ -86,8 +86,8 @@ def load_data_from_npy(data_path, data_orig_name, data_mask_name):
             			List of (different shapes) npy arrays containing binary masks corresponding to data_orig.
     """
 
-    data_orig = np.load(os.path.join(os.path.join(data_path, 'preprocessed'), data_orig_name) + '.npy')
-    data_mask = np.load(os.path.join(os.path.join(data_path, 'preprocessed'), data_mask_name) + '.npy')
+    data_orig = np.load(os.path.join(os.path.join(data_path, 'preprocessed'), data_orig_name) + '.npy', allow_pickle=allow_pickle)
+    data_mask = np.load(os.path.join(os.path.join(data_path, 'preprocessed'), data_mask_name) + '.npy', allow_pickle=allow_pickle)
     print('DONE: npy arrays loaded from data_path/preprocessed')
     return  data_orig, data_mask
 
