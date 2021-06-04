@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     model = DenseNetSeg3D()
     model.to(device)
-    model = torch.nn.parallel.DataParallel(model, device_ids=[0,1])  # -> enable for parallelism, device ids are gpus for calculation
+    model = torch.nn.parallel.DataParallel(model)  # -> enable for parallelism, device ids are gpus for calculation
     criterion = nn.BCEWithLogitsLoss()
     criterion.to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
