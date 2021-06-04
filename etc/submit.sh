@@ -10,8 +10,8 @@
 #SBATCH --mail-type=END
 
 ####### Output
-#SBATCH --output=out/slurm-%j.out
-#SBATCH --error=err/slurm-%j.err
+#SBATCH --output=info.txt
+#SBATCH --error=error.txt
 
 ####### Partition type (dev_single, single, dev_multiple, multiple, dev_multiple_e, multiple_e, fat, dev_gpu_4, gpu_4, gpu_8)
 # See: https://wiki.bwhpc.de/e/BwUniCluster_2.0_Batch_Queues
@@ -31,7 +31,7 @@
 
 #runcommand="time mpirun -n ${SLURM_NTASKS} ${MPIRUN_OPTIONS} ${EXECUTABLE} > output"
 
-module load jupyter/tensorflow
-runcommand="time ${EXECUTABLE}"
+module load 'numlib/python_scipy/1.5.2_numpy_1.19.1_python_3.8.6_intel_19.1'
+runcommand="${EXECUTABLE}"
 echo $runcommand
 exec $runcommand

@@ -131,3 +131,10 @@ dmypy.json
 
 # Editor
 .idea
+etc/error.txt
+
+etc/info.txt
+
+etc/output.txt
+
+src/MODEL_NAME_PLACEHOLDER

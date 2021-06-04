@@ -84,6 +84,7 @@ if __name__ == "__main__":
 
             optimizer.step()
 
+        print('Time: ' + str(datetime.datetime.now()))
         print('Train, epoch: ' + str(epoch))
         print("Amount pixel truth aneurym: " + str(int(sum_aneurysm_truth_batch)))
         print("Amount pixel predicted aneurym: " + str(int(sum_aneurysm_pred_batch)))
@@ -125,6 +126,7 @@ if __name__ == "__main__":
 
             torch.save(model.state_dict(), 'MODEL_NAME_PLACEHOLDER')
 
+            print('Time: ' + str(datetime.datetime.now()))
             print('TEST, epoch: ' + str(epoch))
             print("Amount pixel truth aneurym: " + str(int(sum_aneurysm_truth_batch)))
             print("Amount pixel predicted aneurym: " + str(int(sum_aneurysm_pred_batch)))

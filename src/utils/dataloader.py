@@ -1,6 +1,6 @@
 import torch
 import os
-from src.utils import preprocessing
+from utils import preprocessing
 
 
 class AneurysmDataset(torch.utils.data.Dataset):

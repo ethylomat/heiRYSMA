@@ -1,2 +1,4 @@
 #!/bin/bash
-python ../src/main.py
+source ~/heiRYSMA/venv/bin/activate
+cd ~/heiRYSMA/src
+python -u main.py > ~/heiRYSMA/etc/output.txt
