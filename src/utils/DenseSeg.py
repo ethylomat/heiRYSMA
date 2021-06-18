@@ -24,8 +24,6 @@ class DenseNetSeg3D(nn.Module):
 
     def forward(self, x, device, target_resolution):
         x = torch.unsqueeze(x, 1)
-        x = x.float()
-        x = x.to(device)
 
         # 3x initial Convolution, after this layers output should be 64x64x64 and 32 channels
         x = self.conv1(x)
@@ -42,63 +40,62 @@ class DenseNetSeg3D(nn.Module):
 
         # first convolution for Downsampling
         x = self.conv_down(x)
-        x = x.to(device)
 
         # DenseBlock 1
-        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).to(device)(x, device)
+        x = torch.nn.parallel.DataParallel(DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).double())(x, device)
         self.in_channels = int(self.in_channels + self.growth_rate * 4)
 
         # Deconvolution 1
-        x2 = Deconvolution(in_channels=self.in_channels, kernel_size=(4, 4, 4), stride=(2, 2, 2)).to(device)(x)
+        x2 = torch.nn.parallel.DataParallel(Deconvolution(in_channels=self.in_channels, kernel_size=(4, 4, 4), stride=(2, 2, 2)).double().to(device))(x)
 
         # Transition 1 -> includes Downsampling
-        x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).to(device)(x)
+        x = torch.nn.parallel.DataParallel(TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).double().to(device))(x)
         self.in_channels = int(self.in_channels * self.reduction)
 
         # DenseBlock 2
-        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).to(device)(x, device)
+        x = torch.nn.parallel.DataParallel(DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).double())(x, device)
         self.in_channels = int(self.in_channels + self.growth_rate * 4)
 
         # Deconvolution 2
-        x3 = Deconvolution(in_channels=self.in_channels, kernel_size=(6, 6, 6), stride=(4, 4, 4)).to(device)(x)
+        x3 = torch.nn.parallel.DataParallel(Deconvolution(in_channels=self.in_channels, kernel_size=(6, 6, 6), stride=(4, 4, 4)).double().to(device))(x)
 
         # Transition 2 -> includes Downsampling
-        x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).to(device)(x)
+        x = torch.nn.parallel.DataParallel(TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).double().to(device))(x)
         self.in_channels = int(self.in_channels * self.reduction)
 
         # DenseBlock 3
-        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).to(device)(x, device)
+        x = torch.nn.parallel.DataParallel(DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).double())(x, device)
         self.in_channels = int(self.in_channels + self.growth_rate * 4)
 
         # Deconvolution 3
         if target_resolution == (128,128,100):
-            x4 = Deconvolution(in_channels=self.in_channels, kernel_size=(10, 10, 14), stride=(8, 8, 8)).to(device)(x)
+            x4 = torch.nn.parallel.DataParallel(Deconvolution(in_channels=self.in_channels, kernel_size=(10, 10, 14), stride=(8, 8, 8)).double().to(device))(x)
         else:
             # 64x64x64 is default!
-            x4 = Deconvolution(in_channels=self.in_channels, kernel_size=(10,10,10), stride=(8,8,8)).to(device)(x)
+            x4 = torch.nn.parallel.DataParallel(Deconvolution(in_channels=self.in_channels, kernel_size=(10,10,10), stride=(8,8,8)).double().to(device))(x)
 
         # Transition 3 -> includes Downsampling
-        x = TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).to(device)(x)
+        x = torch.nn.parallel.DataParallel(TransitionLayer(in_channels=self.in_channels, reduction=self.reduction).double().to(device))(x)
         self.in_channels = int(self.in_channels * self.reduction)
 
         # DenseBlock 4
-        x = DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).to(device)(x, device)
+        x = torch.nn.parallel.DataParallel(DenseBlock(in_channels=self.in_channels, n_layers=4, growth_rate=self.growth_rate).double())(x, device)
         self.in_channels = int(self.in_channels + self.growth_rate * 4)
 
-        x = nn.BatchNorm3d(self.in_channels).to(device)(x)
+        x = nn.BatchNorm3d(self.in_channels).double().to(device)(x)
         x = self.relu(x)
 
         # Deconvolution 4
         if target_resolution == (128,128,100):
-            x5 = Deconvolution(in_channels=self.in_channels, kernel_size=(18, 18, 22), stride=(16, 16, 16)).to(device)(x)
+            x5 = torch.nn.parallel.DataParallel(Deconvolution(in_channels=self.in_channels, kernel_size=(18, 18, 22), stride=(16, 16, 16)).double().to(device))(x)
         else:
             #64x64x64 is default!
-            x5 = Deconvolution(in_channels=self.in_channels, kernel_size=(18, 18, 18), stride=(16, 16, 16)).to(device)(x)
+            x5 = torch.nn.parallel.DataParallel(Deconvolution(in_channels=self.in_channels, kernel_size=(18, 18, 18), stride=(16, 16, 16)).double().to(device))(x)
 
         # concatenation of upscaled
-        x = torch.cat([x5, x4, x3, x2, x1], dim=1)
+        x = torch.cat([x5, x4, x3, x2, x1.to(device)], dim=1)
 
-        x = nn.Conv3d(96, out_channels=1, kernel_size=(1, 1, 1), stride=(1, 1, 1)).to(device)(x)
+        x = nn.Conv3d(96, out_channels=1, kernel_size=(1, 1, 1), stride=(1, 1, 1)).double().to(device)(x)
 
         self.in_channels = 32
         return x
@@ -121,8 +118,8 @@ class DenseBlock(nn.Module):
             in_channels = int(i * self.growth_rate + self.in_channels)
 
             # in_channels are out_channels from the last layer
-            y = DenseLayer(in_channels, self.growth_rate).to(device)(x)
-            x = torch.cat([x, y], dim=1)
+            y = torch.nn.parallel.DataParallel(DenseLayer(in_channels, self.growth_rate).to(device)).double()(x)
+            x = torch.cat([x.to(device), y], dim=1)
         return x
 
 

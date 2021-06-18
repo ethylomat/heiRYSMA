@@ -7,9 +7,11 @@ from utils.DenseSeg import DenseNetSeg3D
 import numpy as np
 
 
-def run_model_get_scores(example, label, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, train=True):
+def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, file, epoch, step, train=True):
     label = label.type(torch.LongTensor)
     label = label.to(device)
+    example = example.to(device)
+    example = example.double()
 
     scores = model(example, device, target_resolution)
     scores = torch.squeeze(scores)
@@ -30,22 +32,50 @@ def run_model_get_scores(example, label, target_resolution, sum_aneurysm_truth_b
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        file.write('TrainLossEpoch'+ str(epoch) + 'Step' + str(step) + ': ' + str(loss.item()) + '\n')
+    else:
+        file.write('EvalLossEpoch'+ str(epoch) + 'Step' + str(step) + ': ' + str(loss.item()) + '\n')
 
     return sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch
+
+def create_loss_log_file(model_name):
+
+    f = open('log/' + model_name + '_loss_log.txt', 'a')
+    f.write('Log file start for the test: ' + model_name + '_loss_log.txt\n')
+
+    return f
+
+def write_stats_after_epoch(sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, epoch, train_eval, file):
+    print(train_eval + ', epoch: ' + str(epoch))
+    print("Amount pixel truth aneurym: " + str(int(sum_aneurysm_truth_batch)))
+    print("Amount pixel predicted aneurym: " + str(int(sum_aneurysm_pred_batch)))
+    print('Difference: ' + str(int(sum_aneurysm_pred_batch - sum_aneurysm_truth_batch)))
+    print('BCEWithLogitsLoss: ' + str(np.mean(loss_batch)))
+    print('')
+    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Amount pixel truth aneurysm: ' + str(int(sum_aneurysm_truth_batch)) + '\n')
+    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Amount pixel predicted aneurysm: ' + str(int(sum_aneurysm_pred_batch)) + '\n')
+    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Difference: ' + str(int(sum_aneurysm_pred_batch - sum_aneurysm_truth_batch)) + '\n')
+    file.write(train_eval + 'LossEpoch' + str(epoch) + ', BCEWithLogitsLoss Mean: ' + str(np.mean(loss_batch)) + '\n')
 
 if __name__ == "__main__":
 
     data_path = ...  # insert absolute path to the data directory
-    target_resolution = (128, 128, 100)  # modify here if other resolution needed, currently available (64, 64, 64) and (128, 128, 100)
-    batch_size = 16
-    include_augmented_data = True  # enable if flipped data (vertically + horizonatally), rotated data (180 degrees) and brighter data 5% wanted
-    model_name = 'model_128_128_10_a'  # enable if flipped data (vertically + horizonatally) and rotated data (180 degrees) wanted
+    target_resolution = (64, 64, 64)  # modify here if other resolution needed, currently available (64, 64, 64) and (128, 128, 100)
+    overlap = 10  # overlap for cropping
+    batch_size = 8
+    include_augmented_data = False  # enable if flipped data (vertically + horizonatally), rotated data (180 degrees) and brighter data 5% wanted
+    include_resizing = False  # enable if resizing wanted, else cropping applied
+    model_name = 'model_64_64_64_10_8_0001_crop'  # resolution_overlap_batchsize_learning_rate
+
+    file = create_loss_log_file(model_name)
 
     train = torch.utils.data.DataLoader(
         AneurysmDataset(
             data_path=data_path,
             target_resolution=target_resolution,
+            overlap=overlap,
             include_augmented_data=include_augmented_data,
+            include_resizing=include_resizing,
             train_eval_test='train'
         ),
         batch_size=batch_size,
@@ -57,7 +87,9 @@ if __name__ == "__main__":
         AneurysmDataset(
             data_path=data_path,
             target_resolution=target_resolution,
+            overlap=overlap,
             include_augmented_data=include_augmented_data,
+            include_resizing=include_resizing,
             train_eval_test='eval'
         ),
         batch_size=batch_size,
@@ -69,7 +101,9 @@ if __name__ == "__main__":
         AneurysmDataset(
             data_path=data_path,
             target_resolution=target_resolution,
+            overlap=overlap,
             include_augmented_data=include_augmented_data,
+            include_resizing=include_resizing,
             train_eval_test='test'
         ),
         batch_size=batch_size,
@@ -81,6 +115,7 @@ if __name__ == "__main__":
 
     model = DenseNetSeg3D()
     model.to(device)
+    model = model.double()
     model = torch.nn.parallel.DataParallel(model)  # -> enable for parallelism, device ids are gpus for calculation
     criterion = nn.BCEWithLogitsLoss()
     criterion.to(device)
@@ -94,16 +129,11 @@ if __name__ == "__main__":
         # training
         for train_step, [train_ex, train_l] in enumerate(tqdm(train, desc='Train')):
 
-            sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train = run_model_get_scores(train_ex, train_l, target_resolution,
+            sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train = run_model_get_scores(train_ex, train_l, device, target_resolution,
                                                                                                                     sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train,
-                                                                                                                    train=True)
+                                                                                                                    file, epoch, train_step, train=True)
 
-        print('Train, epoch: ' + str(epoch))
-        print("Amount pixel truth aneurym: " + str(int(sum_aneurysm_truth_batch_train)))
-        print("Amount pixel predicted aneurym: " + str(int(sum_aneurysm_pred_batch_train)))
-        print('Difference: ' + str(int(sum_aneurysm_pred_batch_train - sum_aneurysm_truth_batch_train)))
-        print('BCEWithLogitsLoss: ' + str(np.mean(loss_batch_train)))
-        print('')
+        write_stats_after_epoch(sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train, epoch, 'Train', file)
 
         if (epoch + 1) % 10 == 0:
 
@@ -113,15 +143,13 @@ if __name__ == "__main__":
 
             # eval
             for eval_step, [eval_ex, eval_l] in enumerate(tqdm(eval, desc='Eval')):
-                sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval = run_model_get_scores(eval_ex, eval_l, target_resolution,
+                sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval = run_model_get_scores(eval_ex, eval_l, device, target_resolution,
                                                                                                                     sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
-                                                                                                                    train=False)
+                                                                                                                    file, epoch, eval_step, train=False)
 
             torch.save(model.state_dict(), model_name)
 
-            print('EVAL, epoch: ' + str(epoch))
-            print("Amount pixel truth aneurym: " + str(int(sum_aneurysm_truth_batch_eval)))
-            print("Amount pixel predicted aneurym: " + str(int(sum_aneurysm_pred_batch_eval)))
-            print('Difference: ' + str(int(sum_aneurysm_pred_batch_eval - sum_aneurysm_truth_batch_eval)))
-            print('BCEWithLogitsLoss: ' + str(np.mean(loss_batch_eval)))
-            print('')
+            write_stats_after_epoch(sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
+                                    epoch, 'Eval', file)
+
+    file.close()

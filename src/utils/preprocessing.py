@@ -5,6 +5,7 @@ from skimage.transform import resize
 import cv2
 from cv2 import flip
 from cv2 import rotate
+from src.utils import cropper
 
 
 def load_niigz_as_npy(data_path):
@@ -98,16 +99,21 @@ def resize_width_height_skimage(data_orig, data_mask, target_resolution):
 
     Parameters
     ----------
-    data:		        list
-            			List of npy arrays (of different shapes).
+    data_orig:		    list
+            			List of npy arrays (of different shapes), TOF-MRA data.
+    data_mask:		    list
+            			List of npy arrays (of different shapes), masks belonging to data_orig.
     target_resolution:	tuple
             			Tuple consisting of 3 elements: width, height and amount of slices, e.g.: (560,560,140).
 
     Returns
     -------
-    resized_data_list:	list
-            			List of npy arrays (of same, resized shape, e.g.: 113x560x560x140).
+    resized_data_orig_list:	list
+            			List of npy arrays (of same, resized shape, e.g.: 113x560x560x140), TOF MRA data.
+    resized_data_mask_list:	list
+            			List of npy arrays (of same, resized shape, e.g.: 113x560x560x140), masks belonging to the resized_data_orig_list.
     """
+
     resized_data_orig_list = []
     resized_data_mask_list = []
     for i in range(len(data_orig)):
@@ -127,14 +133,19 @@ def augment_data(data_orig, data_mask):
 
     Parameters
     ----------
-    data:		        list
-            			List of npy arrays (of different shapes).
+    data_orig:		    list
+            			List of npy arrays containing TOF MRA data.
+    data_mask:		    list
+            			List of npy arrays containing binary masks corresponding to data_orig.
 
     Returns
     -------
-    resized_data_list:	list
-            			List of npy arrays including augmented data (flipped horizontally + vertically, rotated 180 degrees) and brighter 5%.
+    augmented_data_list_orig:		    list
+            			List of npy arrays containing TOF MRA data and augmented data.
+    augmented_data_list_mask:		    list
+            			List of npy arrays containing binary masks corresponding to augmented_data_list_orig.
     """
+
     augmented_data_list_orig = []
     augmented_data_list_mask = []
     for i in range(len(data_orig)):
@@ -156,5 +167,48 @@ def augment_data(data_orig, data_mask):
     return augmented_data_list_orig, augmented_data_list_mask
 
 
+def crop_data(data_orig, data_mask, crop_size_xy, crop_size_z, overlap):
+    """
+    Crops the TOF MRA 3D images into smaller cubes with wanted size and overlap (e.g. image 560x560x140 will be cropped into many 64x64x64 images)
 
 
+    Parameters
+    ----------
+    data_orig:		    list
+            			List of npy arrays containing TOF MRA data.
+    data_mask:		    list
+            			List of npy arrays containing binary masks corresponding to data_orig.
+    crop_size_xy        int
+                        Crop in the x and y dim. Due to the quadratic form of the images, crop size of x and y dims are equal
+    crop_size_z         int
+                        Crop in the z dim (slices dim). Amount of slices is not dependent on x and y dim.
+    overlap             int
+                        Overlap for the cropping. We don't want to cut the aneurysms through cropping.
+
+    Returns
+    -------
+    cropped_data_orig:	list
+                        List of npy arrays including cropped data and augmented data. Also balancing is involved. So many non aneurysm datasets are there as with aneurysms.
+    cropped_data_mask:	list
+                        List of npy arrays including masks corresponding to the cropped_data_orig
+    """
+
+    cropped_data_orig = []
+    cropped_data_mask = []
+
+    for i in range(len(data_orig)):
+        cropped_data_orig += cropper.calculate_cropped_array(data_orig[i], crop_size_xy, crop_size_z, overlap)
+        cropped_data_mask += cropper.calculate_cropped_array(data_mask[i], crop_size_xy, crop_size_z, overlap)
+
+    indices_aneurysm_in_mask = np.unique(np.where(np.array(cropped_data_mask) == 1)[0])  # get cubes where aneurysm in the mask
+    cropped_data_orig_aug, cropped_data_mask_aug = augment_data([cropped_data_orig[i] for i in indices_aneurysm_in_mask], [cropped_data_mask[i] for i in indices_aneurysm_in_mask])  # augment data with aneurysms in the mask
+
+    indices_no_aneurysm_in_mask = [s for s in np.arange(0,len(cropped_data_mask)) if s not in indices_aneurysm_in_mask]  # get indeces where no aneurysm in the mask
+    rnd_ind_no_aneurysm_in_mask = np.random.choice(indices_no_aneurysm_in_mask, len(cropped_data_orig_aug))  # get so many data from non aneurysm dataset as there are in the augmented aneurysm (cropped_data_orig_aug)
+
+    cropped_data_orig = [cropped_data_orig[i] for i in rnd_ind_no_aneurysm_in_mask] + cropped_data_orig_aug  # merge aneurysm and non aneurysm dataset
+    cropped_data_mask = [cropped_data_mask[i] for i in rnd_ind_no_aneurysm_in_mask] + cropped_data_mask_aug
+
+    print('DONE: cropping images')
+
+    return cropped_data_orig, cropped_data_mask
