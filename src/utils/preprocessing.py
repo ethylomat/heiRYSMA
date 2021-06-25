@@ -197,8 +197,14 @@ def crop_data(data_orig, data_mask, crop_size_xy, crop_size_z, overlap):
     cropped_data_mask = []
 
     for i in range(len(data_orig)):
-        cropped_data_orig += cropper.calculate_cropped_array(data_orig[i], crop_size_xy, crop_size_z, overlap)
-        cropped_data_mask += cropper.calculate_cropped_array(data_mask[i], crop_size_xy, crop_size_z, overlap)
+        cropped_data_orig_curr = cropper.calculate_cropped_array(data_orig[i], crop_size_xy, crop_size_z, overlap)
+        cropped_data_mask_curr = cropper.calculate_cropped_array(data_mask[i], crop_size_xy, crop_size_z, overlap)
+
+        indeces_valid_resolution = [i for i in range(len(cropped_data_orig_curr)) if
+                                    cropped_data_orig_curr[i].shape == (crop_size_xy, crop_size_xy, crop_size_z)]
+
+        cropped_data_orig += [cropped_data_orig_curr[i] for i in indeces_valid_resolution]
+        cropped_data_mask += [cropped_data_mask_curr[i] for i in indeces_valid_resolution]
 
     indices_aneurysm_in_mask = np.unique(np.where(np.array(cropped_data_mask) == 1)[0])  # get cubes where aneurysm in the mask
     cropped_data_orig_aug, cropped_data_mask_aug = augment_data([cropped_data_orig[i] for i in indices_aneurysm_in_mask], [cropped_data_mask[i] for i in indices_aneurysm_in_mask])  # augment data with aneurysms in the mask
