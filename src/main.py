@@ -65,7 +65,7 @@ def write_stats_after_epoch(sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, l
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='heiRYSMA')
     parser.add_argument('--data', dest='data_path', default=None, help='Absolute path of the data directory')
-    parser.add_argument('--model-dir', dest='model_dir', default=None, help='Absolute path of the model directory')
+    parser.add_argument('--model-dir', dest='models_path', default=None, help='Absolute path of the model directory')
     parser.add_argument('--resolution', nargs=3, type=int, dest='resolution', default=[64, 64, 64], help='Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)')
     parser.add_argument('--overlap', dest='overlap', default=10, help='Overlap for cropping')
     parser.add_argument('--augmented', action='store_false', default=False, dest='augmented', help='Add flipped, rotated and brighter data')
@@ -173,6 +173,8 @@ if __name__ == "__main__":
     if os.path.isfile(model_path) and arguments.train_existing_model:
         print("Loading existing model from: ", model_path)
         model.load_state_dict(torch.load(model_path))
+    else:
+        print("Training new model at: ", model_path)
 
     criterion = nn.BCEWithLogitsLoss()
     criterion.to(device)
