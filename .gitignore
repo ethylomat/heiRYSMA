@@ -131,10 +131,12 @@ dmypy.json
 
 # Editor
 .idea
+
+# Project specific
 etc/error.txt
-
 etc/info.txt
-
 etc/output.txt
 
 src/MODEL_NAME_PLACEHOLDER
+data/*
+*_log.txt
