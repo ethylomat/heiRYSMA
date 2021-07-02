@@ -31,10 +31,10 @@ else
   args="${args} --learning-rate ${LEARNING_RATE}"
 fi
 
-if [[ -z "${DICE}" ]]; then
+if [[ -z "${LOSS}" ]]; then
   args="${args}"
 else
-  args="${args} --dice"
+  args="${args} --loss ${LOSS}"
 fi
 
 python -u -m src.main $args >&1
