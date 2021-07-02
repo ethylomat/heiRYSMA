@@ -10,7 +10,7 @@ import numpy as np
 
 from src.utils.dataloader import AneurysmDataset
 from src.utils.DenseSeg import DenseNetSeg3D
-
+from src.utils.Losses import DiceLoss
 
 def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, file, epoch, step, train=True):
     label = label.type(torch.LongTensor)
@@ -74,6 +74,8 @@ if __name__ == "__main__":
     parser.add_argument('--learning-rate', dest='learning_rate', default=0.0001, type=float, help='Learning rate')
     parser.add_argument('--existing-model', action='store_true', default=True, dest='train_existing_model',
                         help='Training of existing model (if exist)')
+    parser.add_argument('--dice', action='store_true', default=False, dest='dice',
+                        help='Use dice loss')
     arguments = parser.parse_args()
 
     src_dir = pathlib.Path(__file__).parent.resolve()
@@ -176,7 +178,13 @@ if __name__ == "__main__":
     else:
         print("Training new model at: ", model_path)
 
-    criterion = nn.BCEWithLogitsLoss()
+    if arguments.dice:
+        print("Using Dice-Loss")
+        criterion = DiceLoss()
+    else:
+        print("Using BinaryCrossEntropy Loss")
+        criterion = nn.BCEWithLogitsLoss()
+
     criterion.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
