@@ -135,8 +135,9 @@ if __name__ == "__main__":
     model = model.double()
     model.to(device)
 
-    model.load_state_dict(torch.load(model_name))
+    #model.load_state_dict(torch.load(model_name))  # enable if training continued
 
+    # choose the loss function
     #criterion = nn.BCEWithLogitsLoss()
     #criterion = BinaryDiceLoss()
     criterion = FocalLoss(weight=torch.tensor(np.array([0.25])), gamma=2, reduction='mean')  # check if 0.25 or 0.75???
