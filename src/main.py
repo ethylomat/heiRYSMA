@@ -7,10 +7,11 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm.auto import tqdm
 import numpy as np
+from src.utils.dice_loss import BinaryDiceLoss
+from src.utils.focal_loss import FocalLoss
 
 from src.utils.dataloader import AneurysmDataset
 from src.utils.DenseSeg import DenseNetSeg3D
-from src.utils.Losses import DiceLoss
 
 def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, file, epoch, step, train=True):
     label = label.type(torch.LongTensor)
@@ -18,7 +19,7 @@ def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm
     example = example.to(device)
     example = example.double()
 
-    scores = model(example, device, target_resolution)
+    scores = model(example, target_resolution)
     scores = torch.squeeze(scores)
     loss = criterion(scores, label.float())
     loss_batch.append(loss.item())
@@ -43,12 +44,21 @@ def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm
 
     return sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch
 
-def create_loss_log_file(model_name):
-
-    f = open('log/' + model_name + '_loss_log.txt', 'a')
-    f.write('Log file start for the test: ' + model_name + '_loss_log.txt\n')
-
+def create_loss_log_file(loss_log_file_name):
+    f = open('log/' + loss_log_file_name + '_loss_log.txt', 'a')
+    f.write('Log file start for the test: ' + loss_log_file_name + '_loss_log.txt\n')
     return f
+
+def create_current_best_loss_file(best_loss_file_name):
+    if (os.path.isfile('log/' +  best_loss_file_name + '_best_loss_log.txt')):
+            f = open('log/' +  best_loss_file_name + '_best_loss_log.txt', "r+")
+            lines = f.read().splitlines()
+            best_loss = lines[-1]
+            best_loss = float(best_loss)
+    else:
+        f = open('log/' + best_loss_file_name + '_best_loss_log.txt', 'w')
+        best_loss = 100.0
+    return f, best_loss
 
 def write_stats_after_epoch(sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, epoch, train_eval, file):
     print(train_eval + ', epoch: ' + str(epoch))
@@ -74,10 +84,9 @@ if __name__ == "__main__":
     parser.add_argument('--learning-rate', dest='learning_rate', default=0.0001, type=float, help='Learning rate')
     parser.add_argument('--existing-model', action='store_true', default=True, dest='train_existing_model',
                         help='Training of existing model (if exist)')
-    parser.add_argument('--dice', action='store_true', default=False, dest='dice',
-                        help='Use dice loss')
-    arguments = parser.parse_args()
+    parser.add_argument('--loss', default="DIC", dest='loss_metric', help='Loss type: BCE - Binary Cross Entropy , DIC - Dice Loss, FOC - Focal Loss')
 
+    arguments = parser.parse_args()
     src_dir = pathlib.Path(__file__).parent.resolve()
 
     # Default data path: /heiRYSMA/data
@@ -97,15 +106,14 @@ if __name__ == "__main__":
     include_resizing = arguments.resizing  # enable if resizing wanted, else cropping applied
     learning_rate = arguments.learning_rate
 
-    if arguments.dice:
-        loss_metric = "DIC"
-    else:
-        loss_metric = "BCE"
+    loss_metric = arguments.loss_metric
+    assert loss_metric in ["BCE", "DIC", "FOC"]
 
     # Model name format: resolution_overlap_batchsize_learning_rate
     model_name = f"model__{loss_metric}__{str(target_resolution).replace(', ', '_')[1:-1]}__o{str(overlap).zfill(2)}__b{str(batch_size).zfill(2)}__lr{str(learning_rate).replace('0.', '')}"
     if not include_resizing:
-        model_name += "__crop"
+        pass
+        #model_name += "__crop"
 
     model_path = os.path.join(models_path, model_name)
 
@@ -121,6 +129,9 @@ if __name__ == "__main__":
     print("Model name: ", model_name, "\n\n")
 
     file = create_loss_log_file(model_name)
+    loss_log_file = create_loss_log_file(model_name)
+    best_loss_log_file, curr_best_batch_loss = create_current_best_loss_file(model_name)
+
     train = torch.utils.data.DataLoader(
         AneurysmDataset(
             data_path=data_path,
@@ -149,25 +160,26 @@ if __name__ == "__main__":
         drop_last=True
     )
 
-    test = torch.utils.data.DataLoader(
-        AneurysmDataset(
-            data_path=data_path,
-            target_resolution=target_resolution,
-            overlap=overlap,
-            include_augmented_data=include_augmented_data,
-            include_resizing=include_resizing,
-            train_eval_test='test'
-        ),
-        batch_size=batch_size,
-        shuffle=True,
-        drop_last=True
-    )
+    # test = torch.utils.data.DataLoader(
+    #     AneurysmDataset(
+    #         data_path=data_path,
+    #         target_resolution=target_resolution,
+    #         overlap=overlap,
+    #         include_augmented_data=include_augmented_data,
+    #         include_resizing=include_resizing,
+    #         train_eval_test='test'
+    #     ),
+    #     batch_size=batch_size,
+    #     shuffle=True,
+    #     drop_last=True
+    # )
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if torch.cuda.is_available():
         print("Using", torch.cuda.device_count(), "GPUs")
 
-    model = DenseNetSeg3D()
+    model = DenseNetSeg3D(device=device)
+    model = model.double()
     model.to(device)
     model = model.double()
 
@@ -183,17 +195,18 @@ if __name__ == "__main__":
     else:
         print("Training new model at: ", model_path)
 
-    if arguments.dice:
-        print("Using Dice-Loss")
-        criterion = DiceLoss()
-    else:
-        print("Using BinaryCrossEntropy Loss")
+    if loss_metric == "DIC":
+        print("Using Dice Loss")
+        criterion = BinaryDiceLoss()
+    elif loss_metric == "FOC":
+        print("Using Focal Loss")
+        criterion = FocalLoss(weight=torch.tensor(np.array([0.25])), gamma=2, reduction='mean')  # check if 0.25 or 0.75???
+    elif loss_metric == "BCE":
+        print("Using Binary Cross Entropy Loss")
         criterion = nn.BCEWithLogitsLoss()
 
     criterion.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
-    loss_benchmark = 1
 
     for epoch in tqdm(range(5000), desc='Epoch'):
 
@@ -202,12 +215,11 @@ if __name__ == "__main__":
         loss_batch_train = []
         # training
         for train_step, [train_ex, train_l] in enumerate(tqdm(train, desc='Train')):
-
             sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train = run_model_get_scores(train_ex, train_l, device, target_resolution,
-                                                                                                                    sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train,
-                                                                                                                    file, epoch, train_step, train=True)
+                                                                                                                   sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train,
+                                                                                                                   loss_log_file, epoch, train_step, train=True)
 
-        write_stats_after_epoch(sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train, epoch, 'Train', file)
+        write_stats_after_epoch(sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train, epoch, 'Train', loss_log_file)
 
         if (epoch + 1) % 1 == 0:
 
@@ -219,17 +231,18 @@ if __name__ == "__main__":
             for eval_step, [eval_ex, eval_l] in enumerate(tqdm(eval, desc='Eval')):
                 sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval = run_model_get_scores(eval_ex, eval_l, device, target_resolution,
                                                                                                                     sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
-                                                                                                                    file, epoch, eval_step, train=False)
+                                                                                                                    loss_log_file, epoch, eval_step, train=False)
+
+            if (np.mean(loss_batch_eval) < curr_best_batch_loss):
+                print("Current best batch loss: " + str(curr_best_batch_loss))
+                print("New best batch loss: " + str(np.mean(loss_batch_eval)))
+                print("Store model...")
+                curr_best_batch_loss = np.mean(loss_batch_eval)
+                torch.save(model.state_dict(), model_name)
+                best_loss_log_file.write(str(curr_best_batch_loss) + '\n')
+                best_loss_log_file.flush()
 
             write_stats_after_epoch(sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
-                                    epoch, 'Eval', file)
+                                    epoch, 'Eval', loss_log_file)
 
-            if epoch > 0 and loss_benchmark > loss_batch_eval:
-                print("Loss smaller than benchmark. Saving model to: ", model_path)
-                torch.save(model.state_dict(), model_path)
-            else:
-                print("Loss greater than benchmark. Not saving model.")
-
-            loss_benchmark = loss_batch_eval
-
-    file.close()
+    loss_log_file.close()
