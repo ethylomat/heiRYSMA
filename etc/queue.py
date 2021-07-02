@@ -8,7 +8,7 @@ def main():
         submit(learning_rate= "0.0001", overlap=30)
 
 def submit(batch_size=8, overlap=30, resolution=64, learning_rate="0.001", wall_time="01:59:00", gpu=8, loss="DIC"):
-    job_name = f"{prefix}o{overlap}lr{str(learning_rate).replace('0.', '')}"
+    job_name = f"{prefix}o{overlap}lr{str(learning_rate).replace('0.', '')}_{loss}"
     try:
         os.mkdir(os.path.join("log", job_name))
     except:
