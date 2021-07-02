@@ -2,6 +2,9 @@
 source ~/heiRYSMA/venv/bin/activate
 cd ~/heiRYSMA
 
+# Sending pushover message with id
+../message.sh $ID
+
 # Pass parameters to sbatch using --export=BATCH_SIZE=10,OVERLAP=10,RESOLUTION="32 32 32",LEARNING_RATE=0.0001
 args=""
 if [[ -z "${BATCH_SIZE}" ]]; then
@@ -28,4 +31,4 @@ else
   args="${args} --learning-rate ${LEARNING_RATE}"
 fi
 
-python -u -m src.main $args >&1 | tee ~/heiRYSMA/etc/output_$ID.txt
+python -u -m src.main $args >&1 | tee -a ~/heiRYSMA/etc/log/$ID/$(date +%s)\_output.txt

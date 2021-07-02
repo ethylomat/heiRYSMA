@@ -220,7 +220,10 @@ if __name__ == "__main__":
                                     epoch, 'Eval', file)
 
             if epoch > 0 and loss_benchmark > loss_batch_eval:
+                print("Loss smaller than benchmark. Saving model to: ", model_path)
                 torch.save(model.state_dict(), model_path)
+            else:
+                print("Loss greater than benchmark. Not saving model.")
 
             loss_benchmark = loss_batch_eval
 
