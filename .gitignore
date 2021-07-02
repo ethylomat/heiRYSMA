@@ -134,7 +134,7 @@ dmypy.json
 
 # Project specific
 
-logs/*.txt
+logs/*
 src/MODEL_NAME_PLACEHOLDER
 data/*
 *_log.txt
