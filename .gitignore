@@ -138,3 +138,4 @@ logs/*.txt
 src/MODEL_NAME_PLACEHOLDER
 data/*
 *_log.txt
+models/*
