@@ -97,8 +97,13 @@ if __name__ == "__main__":
     include_resizing = arguments.resizing  # enable if resizing wanted, else cropping applied
     learning_rate = arguments.learning_rate
 
+    if arguments.dice:
+        loss_metric = "DIC"
+    else:
+        loss_metric = "BCE"
+
     # Model name format: resolution_overlap_batchsize_learning_rate
-    model_name = f"model__{str(target_resolution).replace(', ', '_')[1:-1]}__o{str(overlap).zfill(2)}__b{str(batch_size).zfill(2)}__lr{str(learning_rate).replace('0.', '')}"
+    model_name = f"model__{loss_metric}__{str(target_resolution).replace(', ', '_')[1:-1]}__o{str(overlap).zfill(2)}__b{str(batch_size).zfill(2)}__lr{str(learning_rate).replace('0.', '')}"
     if not include_resizing:
         model_name += "__crop"
 

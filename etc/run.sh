@@ -31,4 +31,10 @@ else
   args="${args} --learning-rate ${LEARNING_RATE}"
 fi
 
+if [[ -z "${DICE}" ]]; then
+  args="${args}"
+else
+  args="${args} --dice"
+fi
+
 python -u -m src.main $args >&1 | tee -a ~/heiRYSMA/etc/log/$ID/$(date +%s)\_output.txt
