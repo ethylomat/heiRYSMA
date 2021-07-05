@@ -180,8 +180,6 @@ if __name__ == "__main__":
 
     model = DenseNetSeg3D(device=device)
     model = model.double()
-    model.to(device)
-    model = model.double()
 
     device_count = torch.cuda.device_count()
     if device_count > 1:
@@ -194,6 +192,8 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(model_path))
     else:
         print("Training new model at: ", model_path)
+
+    model.to(device)
 
     if loss_metric == "DIC":
         print("Using Dice Loss")
