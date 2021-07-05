@@ -53,8 +53,10 @@ def create_current_best_loss_file(best_loss_file_name):
     if (os.path.isfile('log/' +  best_loss_file_name + '_best_loss_log.txt')):
             f = open('log/' +  best_loss_file_name + '_best_loss_log.txt', "r+")
             lines = f.read().splitlines()
-            best_loss = lines[-1]
-            best_loss = float(best_loss)
+            try:
+                best_loss = float(lines[-1])
+            except:
+                best_loss = 100.0
     else:
         f = open('log/' + best_loss_file_name + '_best_loss_log.txt', 'w')
         best_loss = 100.0
