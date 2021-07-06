@@ -11,20 +11,21 @@ from utils.focal_loss import FocalLoss
 
 
 def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, file, epoch, step, train=True):
-    label = label.type(torch.LongTensor)
     label = label.to(device)
     example = example.to(device)
     example = example.double()
 
-    scores = model(example, target_resolution)
+    scores = model(example, target_resolution, loss_fct)
     scores = torch.squeeze(scores)
-    loss = criterion(scores, label.float())
+    loss = criterion(scores, label)
     loss_batch.append(loss.item())
 
     sum_aneurysm_truth = torch.sum(label)
     sum_aneurysm_truth_batch += sum_aneurysm_truth.item()
 
     # binarize -> hard decision -> if pixel > 0.5 -> aneurysm, else not
+    if loss_fct == "FCL":  #  FCL has binary cross entropy with logits (sigmoid included in the loss, not in the net output)
+        scores = torch.sigmoid(scores)
     sc = torch.zeros_like(scores)
     sc[scores < 0.5] = 0
     sc[scores >= 0.5] = 1
@@ -77,12 +78,13 @@ def write_stats_after_epoch(sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, l
 if __name__ == "__main__":
 
     data_path = ...  # insert absolute path to the data directory
-    target_resolution = (64, 64, 64)  # modify here if other resolution needed, currently available (64, 64, 64) and (128, 128, 100)
-    overlap = 20  # overlap for cropping
-    batch_size = 6
+    target_resolution = (256, 256, 0)  # modify here if other resolution needed, currently available (64, 64, 64) and (128, 128, 100)
+    overlap = 1  # overlap for cropping
+    batch_size = 3
     include_augmented_data = False  # enable if flipped data (vertically + horizonatally), rotated data (180 degrees) and brighter data 5% wanted
-    include_resizing = False  # enable if resizing wanted, else cropping applied
-    model_name = 'model_64_64_64_20_8_0001_crop_Focal_Loss_sigmoid'  # resolution_overlap_batchsize_learning_rate
+    include_resizing = True  # enable if resizing wanted, else cropping applied
+    model_name = 'model_256_256_0_1_4_0001_crop_Focal_Loss_pos_weight10_sigmoid_dropout0.5'  # resolution_overlap_batchsize_learning_rate
+    loss_fct = "BCE"  # or FCL or DICE
 
     loss_log_file = create_loss_log_file(model_name)
     best_loss_log_file, curr_best_batch_loss = create_current_best_loss_file(model_name)
@@ -138,14 +140,18 @@ if __name__ == "__main__":
     #model.load_state_dict(torch.load(model_name))  # enable if training continued
 
     # choose the loss function
-    #criterion = nn.BCEWithLogitsLoss()
-    #criterion = BinaryDiceLoss()
-    criterion = FocalLoss(weight=torch.tensor(np.array([0.25])), gamma=2, reduction='mean')  # check if 0.25 or 0.75???
+    if loss_fct == 'FCL':
+        criterion = FocalLoss(pos_weight=torch.tensor(10.), gamma=2, reduction='mean')  # pos_weight info: https://discuss.pytorch.org/t/how-to-apply-weighted-loss-to-a-binary-segmentation-problem/35317
+    elif loss_fct == "BCE":
+        criterion = nn.BCELoss()
+    elif loss_fct == "DICE":
+        criterion = BinaryDiceLoss()
     criterion.to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
     for epoch in tqdm(range(5000), desc='Epoch'):
 
+        model.train()
         sum_aneurysm_truth_batch_train = 0
         sum_aneurysm_pred_batch_train = 0
         loss_batch_train = []
@@ -159,6 +165,7 @@ if __name__ == "__main__":
         write_stats_after_epoch(sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train, epoch, 'Train', loss_log_file)
 
         if (epoch + 1) % 1 == 0:
+            model.eval()
 
             sum_aneurysm_truth_batch_eval = 0
             sum_aneurysm_pred_batch_eval = 0

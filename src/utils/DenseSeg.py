@@ -7,6 +7,8 @@ class DenseNetSeg3D(nn.Module):
     def __init__(self, device):
         super(DenseNetSeg3D, self).__init__()
 
+        self.device = device
+
         self.batch_norm = nn.BatchNorm3d(num_features=32)
         self.relu = nn.ReLU()
 
@@ -31,10 +33,11 @@ class DenseNetSeg3D(nn.Module):
         self.dense_block_3 = DenseBlock(in_channels=56, n_layers=4, growth_rate=self.growth_rate, device=device)
         self.deconvolution3_128 = torch.nn.DataParallel(Deconvolution(in_channels=120, kernel_size=(10, 10, 14), stride=(8, 8, 8))).to(device)
         self.deconvolution3_64 = torch.nn.DataParallel(Deconvolution(in_channels=120, kernel_size=(10,10,10), stride=(8,8,8))).to(device)
-        self.transition3 = torch.nn.DataParallel(TransitionLayer(in_channels=120, reduction=self.reduction)).to(device)
+        self.transition3 = torch.nn.DataParallel(TransitionLayer(in_channels=120, reduction=self.reduction, kernel_size_conv2=(2,2,1), stride_conv2=(2,2,1))).to(device)
 
         self.dense_block_4 = DenseBlock(in_channels=60, n_layers=4, growth_rate=self.growth_rate, device=device)
         self.batch_norm2_3D = torch.nn.DataParallel(nn.BatchNorm3d(124)).to(device)
+        self.deconvolution4_256x256x8 = torch.nn.DataParallel(Deconvolution(in_channels=124, kernel_size=(18, 18, 10), stride=(16, 16, 1))).to(device)
         self.deconvolution4_128 = torch.nn.DataParallel(Deconvolution(in_channels=124, kernel_size=(18, 18, 22), stride=(16, 16, 16))).to(device)
         self.deconvolution4_64 = torch.nn.DataParallel(Deconvolution(in_channels=124, kernel_size=(18, 18, 18), stride=(16, 16, 16))).to(device)
         self.conv4 = torch.nn.DataParallel(nn.Conv3d(96, out_channels=1, kernel_size=(1, 1, 1), stride=(1, 1, 1))).to(device)
@@ -42,7 +45,7 @@ class DenseNetSeg3D(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
 
-    def forward(self, x, target_resolution):
+    def forward(self, x, target_resolution, loss_fcd):
         x = torch.unsqueeze(x, 1)
 
         # 3x initial Convolution, after this layers output should be 64x64x64 and 32 channels
@@ -86,7 +89,7 @@ class DenseNetSeg3D(nn.Module):
         if target_resolution == (128,128,100):
             x4 = self.deconvolution3_128(x)
         else:
-            # 64x64x64 is default!
+            # 64x64x64 is default!, works also for 256x256x8
             x4 = self.deconvolution3_64(x)
 
         # Transition 3 -> includes Downsampling
@@ -101,16 +104,19 @@ class DenseNetSeg3D(nn.Module):
         # Deconvolution 4
         if target_resolution == (128,128,100):
             x5 = self.deconvolution4_128(x)
-        else:
+        elif target_resolution == (64,64,64):
             #64x64x64 is default!
             x5 = self.deconvolution4_64(x)
+        else:
+            x5 = self.deconvolution4_256x256x8(x)
 
         # concatenation of upscaled
         x = torch.cat([x5, x4, x3, x2, x1], dim=1)
 
         x = self.conv4(x)
 
-        x = self.sigmoid(x)
+        if loss_fcd != "FCL":
+            x = self.sigmoid(x)
         return x
 
 
@@ -175,12 +181,12 @@ class DenseLayer(nn.Module):
 
 
 class TransitionLayer(nn.Module):
-    def __init__(self, in_channels, reduction):
+    def __init__(self, in_channels, reduction, kernel_size_conv2=(2, 2, 2), stride_conv2=(2, 2, 2)):
         super(TransitionLayer, self).__init__()
         self.batch_norm = nn.BatchNorm3d(in_channels)
         self.relu = nn.ReLU()
         self.conv1 = nn.Conv3d(in_channels, in_channels, kernel_size=(1, 1, 1), stride=(1, 1, 1))
-        self.conv2 = nn.Conv3d(in_channels, int(in_channels * reduction), kernel_size=(2, 2, 2), stride=(2, 2, 2))
+        self.conv2 = nn.Conv3d(in_channels, int(in_channels * reduction), kernel_size=kernel_size_conv2, stride=stride_conv2)
 
     def forward(self, x):
         # first conv(1x1x1)
