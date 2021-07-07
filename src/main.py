@@ -2,18 +2,20 @@ import argparse
 import os
 import pathlib
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm.auto import tqdm
-import numpy as np
+
+from src.utils.DenseSeg import DenseNetSeg3D
+from src.utils.dataloader import AneurysmDataset
 from src.utils.dice_loss import BinaryDiceLoss
 from src.utils.focal_loss import FocalLoss
 
-from src.utils.dataloader import AneurysmDataset
-from src.utils.DenseSeg import DenseNetSeg3D
 
-def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, file, epoch, step, train=True):
+def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch,
+                         loss_batch, file, epoch, step, train=True):
     label = label.type(torch.LongTensor)
     label = label.to(device)
     example = example.to(device)
@@ -38,29 +40,32 @@ def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        file.write('TrainLossEpoch'+ str(epoch) + 'Step' + str(step) + ': ' + str(loss.item()) + '\n')
+        file.write('TrainLossEpoch' + str(epoch) + 'Step' + str(step) + ': ' + str(loss.item()) + '\n')
     else:
-        file.write('EvalLossEpoch'+ str(epoch) + 'Step' + str(step) + ': ' + str(loss.item()) + '\n')
+        file.write('EvalLossEpoch' + str(epoch) + 'Step' + str(step) + ': ' + str(loss.item()) + '\n')
 
     return sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch
+
 
 def create_loss_log_file(loss_log_file_name):
     f = open('log/' + loss_log_file_name + '_loss_log.txt', 'a')
     f.write('Log file start for the test: ' + loss_log_file_name + '_loss_log.txt\n')
     return f
 
+
 def create_current_best_loss_file(best_loss_file_name):
-    if (os.path.isfile('log/' +  best_loss_file_name + '_best_loss_log.txt')):
-            f = open('log/' +  best_loss_file_name + '_best_loss_log.txt', "r+")
-            lines = f.read().splitlines()
-            try:
-                best_loss = float(lines[-1])
-            except:
-                best_loss = 100.0
+    if (os.path.isfile('log/' + best_loss_file_name + '_best_loss_log.txt')):
+        f = open('log/' + best_loss_file_name + '_best_loss_log.txt', "r+")
+        lines = f.read().splitlines()
+        try:
+            best_loss = float(lines[-1])
+        except:
+            best_loss = 100.0
     else:
         f = open('log/' + best_loss_file_name + '_best_loss_log.txt', 'w')
         best_loss = 100.0
     return f, best_loss
+
 
 def write_stats_after_epoch(sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, epoch, train_eval, file):
     print(train_eval + ', epoch: ' + str(epoch))
@@ -69,24 +74,32 @@ def write_stats_after_epoch(sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, l
     print('Difference: ' + str(int(sum_aneurysm_pred_batch - sum_aneurysm_truth_batch)))
     print('BCEWithLogitsLoss: ' + str(np.mean(loss_batch)))
     print('')
-    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Amount pixel truth aneurysm: ' + str(int(sum_aneurysm_truth_batch)) + '\n')
-    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Amount pixel predicted aneurysm: ' + str(int(sum_aneurysm_pred_batch)) + '\n')
-    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Difference: ' + str(int(sum_aneurysm_pred_batch - sum_aneurysm_truth_batch)) + '\n')
+    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Amount pixel truth aneurysm: ' + str(
+        int(sum_aneurysm_truth_batch)) + '\n')
+    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Amount pixel predicted aneurysm: ' + str(
+        int(sum_aneurysm_pred_batch)) + '\n')
+    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Difference: ' + str(
+        int(sum_aneurysm_pred_batch - sum_aneurysm_truth_batch)) + '\n')
     file.write(train_eval + 'LossEpoch' + str(epoch) + ', BCEWithLogitsLoss Mean: ' + str(np.mean(loss_batch)) + '\n')
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='heiRYSMA')
     parser.add_argument('--data', dest='data_path', default=None, help='Absolute path of the data directory')
     parser.add_argument('--model-dir', dest='models_path', default=None, help='Absolute path of the model directory')
-    parser.add_argument('--resolution', nargs=3, type=int, dest='resolution', default=[64, 64, 64], help='Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)')
+    parser.add_argument('--resolution', nargs=3, type=int, dest='resolution', default=[64, 64, 64],
+                        help='Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)')
     parser.add_argument('--overlap', dest='overlap', default=10, help='Overlap for cropping')
-    parser.add_argument('--augmented', action='store_false', default=False, dest='augmented', help='Add flipped, rotated and brighter data')
+    parser.add_argument('--augmented', action='store_false', default=False, dest='augmented',
+                        help='Add flipped, rotated and brighter data')
     parser.add_argument('--batch-size', dest='batch_size', default=8, type=int, help='Batch size')
-    parser.add_argument('--resizing', action='store_false', default=False, dest='resizing', help='Resizing (default is cropping)')
+    parser.add_argument('--resizing', action='store_false', default=False, dest='resizing',
+                        help='Resizing (default is cropping)')
     parser.add_argument('--learning-rate', dest='learning_rate', default=0.0001, type=float, help='Learning rate')
     parser.add_argument('--existing-model', action='store_true', default=True, dest='train_existing_model',
                         help='Training of existing model (if exist)')
-    parser.add_argument('--loss', default="DIC", dest='loss_metric', help='Loss type: BCE - Binary Cross Entropy , DIC - Dice Loss, FOC - Focal Loss')
+    parser.add_argument('--loss', default="DIC", dest='loss_metric',
+                        help='Loss type: BCE - Binary Cross Entropy , DIC - Dice Loss, FOC - Focal Loss')
 
     arguments = parser.parse_args()
     src_dir = pathlib.Path(__file__).parent.resolve()
@@ -101,7 +114,8 @@ if __name__ == "__main__":
     if models_path is None:
         models_path = os.path.join(src_dir.parent.resolve(), "models")
 
-    target_resolution = tuple(arguments.resolution)  # modify here if other resolution needed, currently available (64, 64, 64) and (128, 128, 100)
+    target_resolution = tuple(
+        arguments.resolution)  # modify here if other resolution needed, currently available (64, 64, 64) and (128, 128, 100)
     overlap = arguments.overlap  # overlap for cropping
     batch_size = arguments.batch_size
     include_augmented_data = arguments.augmented  # enable if flipped data (vertically + horizonatally), rotated data (180 degrees) and brighter data 5% wanted
@@ -115,7 +129,7 @@ if __name__ == "__main__":
     model_name = f"model__{loss_metric}__{str(target_resolution).replace(', ', '_')[1:-1]}__o{str(overlap).zfill(2)}__b{str(batch_size).zfill(2)}__lr{str(learning_rate).replace('0.', '')}"
     if not include_resizing:
         pass
-        #model_name += "__crop"
+        # model_name += "__crop"
 
     model_path = os.path.join(models_path, model_name)
 
@@ -180,14 +194,14 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         print("Using", torch.cuda.device_count(), "GPUs")
 
-    model = DenseNetSeg3D(device=device)
-    model = model.double()
-
     device_count = torch.cuda.device_count()
+
     if device_count > 1:
-        model = torch.nn.parallel.DataParallel(model, device_ids=list(range(device_count)))
+        model = DenseNetSeg3D(device=device, device_ids=list(range(device_count)))
     else:
-        model = torch.nn.parallel.DataParallel(model)
+        model = DenseNetSeg3D(device=device, device_ids=[0])
+
+    model = model.double()
 
     if os.path.isfile(model_path) and arguments.train_existing_model:
         print("Loading existing model from: ", model_path)
@@ -202,7 +216,8 @@ if __name__ == "__main__":
         criterion = BinaryDiceLoss()
     elif loss_metric == "FOC":
         print("Using Focal Loss")
-        criterion = FocalLoss(weight=torch.tensor(np.array([0.25])), gamma=2, reduction='mean')  # check if 0.25 or 0.75???
+        criterion = FocalLoss(weight=torch.tensor(np.array([0.25])), gamma=2,
+                              reduction='mean')  # check if 0.25 or 0.75???
     elif loss_metric == "BCE":
         print("Using Binary Cross Entropy Loss")
         criterion = nn.BCEWithLogitsLoss()
@@ -217,11 +232,13 @@ if __name__ == "__main__":
         loss_batch_train = []
         # training
         for train_step, [train_ex, train_l] in enumerate(tqdm(train, desc='Train')):
-            sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train = run_model_get_scores(train_ex, train_l, device, target_resolution,
-                                                                                                                   sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train,
-                                                                                                                   loss_log_file, epoch, train_step, train=True)
+            sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train = run_model_get_scores(
+                train_ex, train_l, device, target_resolution,
+                sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train,
+                loss_log_file, epoch, train_step, train=True)
 
-        write_stats_after_epoch(sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train, epoch, 'Train', loss_log_file)
+        write_stats_after_epoch(sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train, epoch,
+                                'Train', loss_log_file)
 
         if (epoch + 1) % 1 == 0:
 
@@ -231,9 +248,10 @@ if __name__ == "__main__":
 
             # eval
             for eval_step, [eval_ex, eval_l] in enumerate(tqdm(eval, desc='Eval')):
-                sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval = run_model_get_scores(eval_ex, eval_l, device, target_resolution,
-                                                                                                                    sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
-                                                                                                                    loss_log_file, epoch, eval_step, train=False)
+                sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval = run_model_get_scores(
+                    eval_ex, eval_l, device, target_resolution,
+                    sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
+                    loss_log_file, epoch, eval_step, train=False)
 
             if (np.mean(loss_batch_eval) < curr_best_batch_loss):
                 print("Current best batch loss: " + str(curr_best_batch_loss))
