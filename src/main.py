@@ -259,7 +259,7 @@ if __name__ == "__main__":
                 print("New best batch loss: " + str(np.mean(loss_batch_eval)))
                 print("Store model...")
                 curr_best_batch_loss = np.mean(loss_batch_eval)
-                torch.save(model.state_dict(), model_name)
+                torch.save(model.state_dict(), model_path)
                 best_loss_log_file.write(str(curr_best_batch_loss) + '\n')
                 best_loss_log_file.flush()
 
