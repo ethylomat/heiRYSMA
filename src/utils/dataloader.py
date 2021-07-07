@@ -53,10 +53,14 @@ class AneurysmDataset(torch.utils.data.Dataset):
             if include_resizing:
                 self.data, self.mask = preprocessing.resize_width_height_skimage(self.data, self.mask,
                                                                              target_resolution=target_resolution)
+                if target_resolution[2]==0:
+                    self.data, self.mask = preprocessing.crop_data(self.data, self.mask,
+                                                                   crop_size_xy=target_resolution[0],
+                                                                   crop_size_z=8, overlap=overlap, include_augment=False)
                 if include_augmented_data:
                     self.data, self.mask = preprocessing.augment_data(self.data, self.mask)
             else:
-                self.data, self.mask = preprocessing.crop_data(self.data, self.mask, crop_size_xy=target_resolution[0], crop_size_z=target_resolution[2], overlap=overlap)  # augmenting / balancing included
+                self.data, self.mask = preprocessing.crop_data(self.data, self.mask, crop_size_xy=target_resolution[0], crop_size_z=target_resolution[2], overlap=overlap, include_augment=True)  # augmenting / balancing included
             preprocessing.save_data_as_npy(data_path, self.data, self.mask, resized_file_name_orig, resized_file_name_mask)
 
         # shuffle always with same order

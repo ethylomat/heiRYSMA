@@ -14,22 +14,22 @@ from src.utils.dice_loss import BinaryDiceLoss
 from src.utils.focal_loss import FocalLoss
 
 
-def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch,
-                         loss_batch, file, epoch, step, train=True):
-    label = label.type(torch.LongTensor)
+def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch, file, epoch, step, train=True):
     label = label.to(device)
     example = example.to(device)
     example = example.double()
 
-    scores = model(example, target_resolution)
+    scores = model(example, target_resolution, loss_fct)
     scores = torch.squeeze(scores)
-    loss = criterion(scores, label.float())
+    loss = criterion(scores, label)
     loss_batch.append(loss.item())
 
     sum_aneurysm_truth = torch.sum(label)
     sum_aneurysm_truth_batch += sum_aneurysm_truth.item()
 
     # binarize -> hard decision -> if pixel > 0.5 -> aneurysm, else not
+    if loss_fct == "FCL":  #  FCL has binary cross entropy with logits (sigmoid included in the loss, not in the net output)
+        scores = torch.sigmoid(scores)
     sc = torch.zeros_like(scores)
     sc[scores < 0.5] = 0
     sc[scores >= 0.5] = 1
@@ -216,8 +216,7 @@ if __name__ == "__main__":
         criterion = BinaryDiceLoss()
     elif loss_metric == "FOC":
         print("Using Focal Loss")
-        criterion = FocalLoss(weight=torch.tensor(np.array([0.25])), gamma=2,
-                              reduction='mean')  # check if 0.25 or 0.75???
+        criterion = FocalLoss(pos_weight=torch.tensor(10.), gamma=2, reduction='mean')  # pos_weight info: https://discuss.pytorch.org/t/how-to-apply-weighted-loss-to-a-binary-segmentation-problem/35317
     elif loss_metric == "BCE":
         print("Using Binary Cross Entropy Loss")
         criterion = nn.BCEWithLogitsLoss()
@@ -227,6 +226,7 @@ if __name__ == "__main__":
 
     for epoch in tqdm(range(5000), desc='Epoch'):
 
+        model.train()
         sum_aneurysm_truth_batch_train = 0
         sum_aneurysm_pred_batch_train = 0
         loss_batch_train = []
@@ -241,6 +241,7 @@ if __name__ == "__main__":
                                 'Train', loss_log_file)
 
         if (epoch + 1) % 1 == 0:
+            model.eval()
 
             sum_aneurysm_truth_batch_eval = 0
             sum_aneurysm_pred_batch_eval = 0
