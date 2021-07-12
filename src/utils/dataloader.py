@@ -56,7 +56,7 @@ class AneurysmDataset(torch.utils.data.Dataset):
                 if target_resolution[2]==0:
                     self.data, self.mask = preprocessing.crop_data(self.data, self.mask,
                                                                    crop_size_xy=target_resolution[0],
-                                                                   crop_size_z=8, overlap=overlap, include_augment=False)
+                                                                   crop_size_z=8, overlap=overlap, include_augment=True)
                 if include_augmented_data:
                     self.data, self.mask = preprocessing.augment_data(self.data, self.mask)
             else:
@@ -75,7 +75,7 @@ class AneurysmDataset(torch.utils.data.Dataset):
             self.mask = self.mask[:int(len(self.mask) * 0.7)]
         elif train_eval_test == 'eval':
             self.data = self.data[int(len(self.data) * 0.7): int(len(self.data) * 0.85)]
-            self.mask = self.mask[int(len(self.data) * 0.7): int(len(self.mask) * 0.85)]
+            self.mask = self.mask[int(len(self.mask) * 0.7): int(len(self.mask) * 0.85)]
         else:
             self.data = self.data[int(len(self.data) * 0.85):]
             self.mask = self.mask[int(len(self.mask) * 0.85):]
