@@ -1,7 +1,7 @@
 import torch
 import os
 import numpy as np
-from src.utils import preprocessing
+from utils import preprocessing
 
 
 class AneurysmDataset(torch.utils.data.Dataset):
@@ -64,6 +64,7 @@ class AneurysmDataset(torch.utils.data.Dataset):
 
         # convert to torch tensors
         self.data = torch.tensor(self.data)
+        print(self.data.shape)
         self.mask = torch.tensor(self.mask)
 
         if train_eval_test == 'train':
@@ -75,8 +76,6 @@ class AneurysmDataset(torch.utils.data.Dataset):
         else:
             self.data = self.data[int(len(self.data) * 0.85):]
             self.mask = self.mask[int(len(self.mask) * 0.85):]
-
-
 
     def shuffle_data(self, data_path):
         shuffled_file_path = data_path + '/preprocessed/shuffling_order_' + str(len(self.mask)) + '.npy'
