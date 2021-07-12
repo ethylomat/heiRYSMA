@@ -19,7 +19,7 @@ def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm
     example = example.to(device)
     example = example.double()
 
-    scores = model(example, target_resolution, loss_fct)
+    scores = model(example, target_resolution, loss_metric)
     scores = torch.squeeze(scores)
     loss = criterion(scores, label)
     loss_batch.append(loss.item())
@@ -28,7 +28,7 @@ def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm
     sum_aneurysm_truth_batch += sum_aneurysm_truth.item()
 
     # binarize -> hard decision -> if pixel > 0.5 -> aneurysm, else not
-    if loss_fct == "FCL":  #  FCL has binary cross entropy with logits (sigmoid included in the loss, not in the net output)
+    if loss_metric == "FOC":  #  FCL has binary cross entropy with logits (sigmoid included in the loss, not in the net output)
         scores = torch.sigmoid(scores)
     sc = torch.zeros_like(scores)
     sc[scores < 0.5] = 0
@@ -131,7 +131,10 @@ if __name__ == "__main__":
         pass
         # model_name += "__crop"
 
+    model_name_optimizer = model_name + '_optim'
+
     model_path = os.path.join(models_path, model_name)
+    model_optimizer_path = os.path.join(models_path, model_name_optimizer)
 
     # Printing used settings (parsed or default)
     print("Using data path: ", data_path)
@@ -224,6 +227,10 @@ if __name__ == "__main__":
     criterion.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
+    if os.path.isfile(model_optimizer_path) and arguments.train_existing_model:
+        print("Loading existing model optimizer from: ", model_optimizer_path)
+        optimizer.load_state_dict(torch.load(model_name_optimizer))
+
     for epoch in tqdm(range(5000), desc='Epoch'):
 
         model.train()
@@ -260,6 +267,7 @@ if __name__ == "__main__":
                 print("Store model...")
                 curr_best_batch_loss = np.mean(loss_batch_eval)
                 torch.save(model.state_dict(), model_path)
+                torch.save(optimizer.state_dict(), model_optimizer_path)
                 best_loss_log_file.write(str(curr_best_batch_loss) + '\n')
                 best_loss_log_file.flush()
 

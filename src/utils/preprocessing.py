@@ -210,7 +210,7 @@ def crop_data(data_orig, data_mask, crop_size_xy, crop_size_z, overlap, include_
         cropped_data_mask += [cropped_data_mask_curr[i] for i in indeces_valid_resolution]
 
     if include_augment:
-        indices_aneurysm_in_mask = np.unique(np.where(np.array(cropped_data_mask) == 1)[0])  # get cubes where aneurysm in the mask
+        indices_aneurysm_in_mask = np.unique(np.where(np.array(cropped_data_mask) > 0)[0])  # get cubes where aneurysm in the mask
         cropped_data_orig_aug, cropped_data_mask_aug = augment_data([cropped_data_orig[i] for i in indices_aneurysm_in_mask], [cropped_data_mask[i] for i in indices_aneurysm_in_mask])  # augment data with aneurysms in the mask
 
         indices_no_aneurysm_in_mask = [s for s in np.arange(0,len(cropped_data_mask)) if s not in indices_aneurysm_in_mask]  # get indeces where no aneurysm in the mask

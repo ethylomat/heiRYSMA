@@ -114,7 +114,7 @@ class DenseNetSeg3D(nn.Module):
 
         x = self.conv4(x)
 
-        if loss_fcd != "FCL":
+        if loss_fcd != "FOC":
             x = self.sigmoid(x)
         return x
 
@@ -129,7 +129,7 @@ class DenseBlock(nn.Module):
         self.n_layers = n_layers
         self.in_channels = in_channels
         self.growth_rate = growth_rate
-        self.dense_layers = []
+        self.dense_layers = nn.ModuleList()
 
         for i in range(self.n_layers):
             model = DenseLayer(int(i * self.growth_rate + self.in_channels), self.growth_rate)
