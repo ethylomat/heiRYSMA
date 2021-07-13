@@ -18,18 +18,16 @@ def get_metrics(scores, labels):
     preds[scores < 0.5] = 0
     preds[scores >= 0.5] = 1
 
-    print("labels shape:")
-    print(labels.shape)
-
-    print("scores shape:")
-    print(scores.shape)
-
     # Prior to dilation (manipulation of prediction may be dangerous and changing the actual result?)
     # Assume for segmentation the dilation is not required
     test_image, result_image = get_images(sitk.GetImageFromArray(labels), sitk.GetImageFromArray(preds))
-    dsc = get_dsc(test_image, result_image)
+    # dsc = get_dsc(test_image, result_image)
+    # print("dsc")
+    # print(dsc)
     h95 = get_hausdorff(test_image, result_image)
     vs = get_vs(test_image, result_image)
+
+    return h95, vs
 
 
 # location holen
@@ -40,7 +38,7 @@ def get_metrics(scores, labels):
     # Dilate image
     # Maybe not necessary? -> maybe reinsert later
     # # dilated_preds = sitk.GetImageFromArray(preds)
-    #  # dilated_preds = sitk.BinaryDilate(dilated_preds, (2, 2, 2))
+    # # dilated_preds = sitk.BinaryDilate(dilated_preds, (2, 2, 2))
     # # dilated_preds = sitk.GetArrayFromImage(dilated_preds)
 
     # reinsert?
@@ -63,8 +61,7 @@ def get_metrics(scores, labels):
      ##                                  lowerThreshold=1, upperThreshold=num)
 
 
-def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm_truth_batch, sum_aneurysm_pred_batch,
-                         loss_batch, file, epoch, step, train=True):
+def run_model_get_scores(example, label, device, target_resolution, file, epoch, step, train=True):
     label = label.type(torch.LongTensor)
     label = label.to(device)
     example = example.to(device)
@@ -73,26 +70,37 @@ def run_model_get_scores(example, label, device, target_resolution, sum_aneurysm
     scores = model(example, device, target_resolution)
     scores = torch.squeeze(scores)
     loss = criterion(scores, label.float())
-    loss_batch.append(loss.item())
+    loss_val = loss.item()
+
+    batch_h95, batch_vs = 0, 0
+    h95_counter, vs_counter = 0, 0
+
+    if train:
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        file.write('TrainLossEpoch' + str(epoch) + 'Step' + str(step) + ': ' + str(loss_val) + '\n')
+    else:
+        file.write('EvalLossEpoch' + str(epoch) + 'Step' + str(step) + ': ' + str(loss_val) + '\n')
 
     for l, s in zip(label.detach().cpu().numpy(), scores.detach().cpu().numpy()):
-        get_metrics(s.squeeze(), l.squeeze())
+        h95, vs = get_metrics(s.squeeze(), l.squeeze())
+        if not np.isnan(h95):
+            batch_h95 += h95
+            h95_counter += 1
+        if not np.isnan(vs):
+            batch_vs += vs
+            vs_counter += 1
 
     # sum_aneurysm_truth = torch.sum(label)
     # sum_aneurysm_truth_batch += sum_aneurysm_truth.item()
 
     # sum_aneurysm_pred = torch.sum(sc)
     # sum_aneurysm_pred_batch += sum_aneurysm_pred.item()
+    mean_h95 = batch_h95 / h95_counter if h95_counter > 0 else np.nan
+    mean_vs = batch_vs / vs_counter if vs_counter > 0 else np.nan
 
-    if train:
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        file.write('TrainLossEpoch' + str(epoch) + 'Step' + str(step) + ': ' + str(loss.item()) + '\n')
-    else:
-        file.write('EvalLossEpoch' + str(epoch) + 'Step' + str(step) + ': ' + str(loss.item()) + '\n')
-
-    return sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, loss_batch
+    return {"loss": loss_val, "h95": mean_h95, "vs": mean_vs}
 
 
 def create_loss_log_file(model_name):
@@ -185,44 +193,53 @@ if __name__ == "__main__":
 
     for epoch in tqdm(range(5000), desc='Epoch'):
 
-        sum_aneurysm_truth_batch_train = 0
-        sum_aneurysm_pred_batch_train = 0
+        sum_h95_train, sum_vs_train = 0, 0
         loss_batch_train = []
+        train_h95_counter, train_vs_counter = 0, 0
         # training
         for train_step, [train_ex, train_l] in enumerate(tqdm(train, desc='Train')):
-            sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train = run_model_get_scores(
+            metrics_train = run_model_get_scores(
                 train_ex, train_l, device, target_resolution,
-                sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train,
                 file, epoch, train_step, train=True)
 
-        write_stats_after_epoch(sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train, epoch,
-                                'Train', file)
+            loss_batch_train.append(metrics_train["loss"])
+            if not np.isnan(metrics_train["h95"]):
+                sum_h95_train += metrics_train["h95"]
+                train_h95_counter += 1
+            if not np.isnan(metrics_train["vs"]):
+                sum_vs_train += metrics_train["vs"]
+                train_vs_counter += 1
+
+        print(f"Mean Train H95: {sum_h95_train / train_h95_counter}")
+        print(f"Mean Train VS: {sum_vs_train / train_vs_counter}")
+
+        # write_stats_after_epoch(sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train, epoch,
+                                # 'Train', file)
 
         if (epoch + 1) % 10 == 0:
-            sum_aneurysm_truth_batch_eval = 0
-            sum_aneurysm_pred_batch_eval = 0
+            sum_h95_eval, sum_vs_eval = 0, 0
             loss_batch_eval = []
+            eval_h95_counter, eval_vs_counter = 0, 0
 
-            # eval
+            # evaluation
             for eval_step, [eval_ex, eval_l] in enumerate(tqdm(eval, desc='Eval')):
-                sum_aneurysm_truth_batch_eval, \
-                sum_aneurysm_pred_batch_eval, \
-                loss_batch_eval = run_model_get_scores(eval_ex, eval_l, device, target_resolution,
-                                                       sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval,
-                                                       loss_batch_eval,
+                metrics_eval = run_model_get_scores(eval_ex, eval_l, device, target_resolution,
                                                        file, epoch, eval_step, train=False)
 
-                # Compute dice
-                dsc = []
-                num_classes = 4
-                for i in range(1, num_classes):  # ignore Background 0
-                    dsc_i = dice(sum_aneurysm_pred_batch_eval, sum_aneurysm_truth_batch_eval, i)
-                    dsc.append(dsc_i)
-                dsc = np.mean(dsc)
+
+            loss_batch_eval.append(metrics_train["loss"])
+            if not np.isnan(metrics_train["h95"]):
+                sum_h95_eval += metrics_train["h95"]
+                eval_h95_counter += 1
+            if not np.isnan(metrics_train["vs"]):
+                sum_vs_eval += metrics_train["vs"]
+                eval_vs_counter += 1
+            print(f"Mean Eval H95: {sum_h95_eval / eval_h95_counter}")
+            print(f"Mean Eval VS: {sum_vs_eval / eval_vs_counter}")
 
             torch.save(model.state_dict(), model_name)
 
-            write_stats_after_epoch(sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
-                                    epoch, 'Eval', file)
+            # write_stats_after_epoch(sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
+                                    # epoch, 'Eval', file)
 
     file.close()

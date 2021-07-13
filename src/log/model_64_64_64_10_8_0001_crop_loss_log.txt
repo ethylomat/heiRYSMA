@@ -760,3 +760,28 @@ Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
 Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
 Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
 TrainLossEpoch0Step0: 0.738811731338501
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+TrainLossEpoch0Step0: 0.6888314485549927
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+TrainLossEpoch0Step0: 0.6413464546203613
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+TrainLossEpoch0Step0: 0.7381024956703186
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+TrainLossEpoch0Step0: 0.6818268895149231
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+TrainLossEpoch0Step0: 0.7084418535232544
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+TrainLossEpoch0Step0: 0.6627235412597656
+TrainLossEpoch0Step1: 0.7232781648635864
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+TrainLossEpoch0Step0: 0.6467311978340149
+TrainLossEpoch0Step1: 0.7410562634468079
+TrainLossEpoch0Step2: 0.7616722583770752
+TrainLossEpoch0Step3: 0.6734714508056641
+Log file start for the test: model_64_64_64_10_8_0001_crop_loss_log.txt
+TrainLossEpoch0Step0: 0.6799485683441162

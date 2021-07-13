@@ -24,6 +24,7 @@ def do():
 
     test_locations = ed.get_locations(os.path.join(test_dir, 'location.txt'))
     result_locations = get_center_of_mass(result_image)
+    print(result_locations)
 
     sensitivity, false_positives = ed.get_detection_metrics(test_locations, result_locations, test_image)
 
@@ -94,10 +95,12 @@ def get_dsc(test_image, result_image):
 def get_hausdorff(test_image, result_image):
     """Compute the Hausdorff distance."""
 
+    test_statistics = sitk.StatisticsImageFilter()
+    test_statistics.Execute(test_image)
     result_statistics = sitk.StatisticsImageFilter()
     result_statistics.Execute(result_image)
 
-    if result_statistics.GetSum() == 0:
+    if test_statistics.GetSum() == 0 or result_statistics.GetSum() == 0:
         hd = np.nan
         return hd
 
@@ -106,8 +109,6 @@ def get_hausdorff(test_image, result_image):
     e_result_image = sitk.BinaryErode(result_image, (1, 1, 1))
 
     h_test_image = sitk.Subtract(test_image, e_test_image)
-    print("test_image_after_substract")
-    print(h_test_image)
     h_result_image = sitk.Subtract(result_image, e_result_image)
 
     h_test_indices = np.flip(np.argwhere(sitk.GetArrayFromImage(h_test_image))).tolist()
@@ -119,11 +120,6 @@ def get_hausdorff(test_image, result_image):
     def get_distances_from_a_to_b(a, b):
         kd_tree = scipy.spatial.KDTree(a, leafsize=100)
         return kd_tree.query(b, k=1, eps=0, p=2)[0]
-
-    print("Test Coordinates:")
-    print(test_coordinates)
-    print("Result Coordinates:")
-    print(result_coordinates)
 
     d_test_to_result = get_distances_from_a_to_b(test_coordinates, result_coordinates)
     d_result_to_test = get_distances_from_a_to_b(result_coordinates, test_coordinates)
