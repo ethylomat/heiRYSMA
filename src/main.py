@@ -72,7 +72,7 @@ def write_stats_after_epoch(sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, l
     print("Amount pixel truth aneurym: " + str(int(sum_aneurysm_truth_batch)))
     print("Amount pixel predicted aneurym: " + str(int(sum_aneurysm_pred_batch)))
     print('Difference: ' + str(int(sum_aneurysm_pred_batch - sum_aneurysm_truth_batch)))
-    print('BCEWithLogitsLoss: ' + str(np.mean(loss_batch)))
+    print('Loss: ' + str(np.mean(loss_batch)))
     print('')
     file.write(train_eval + 'LossEpoch' + str(epoch) + ', Amount pixel truth aneurysm: ' + str(
         int(sum_aneurysm_truth_batch)) + '\n')
@@ -80,7 +80,7 @@ def write_stats_after_epoch(sum_aneurysm_truth_batch, sum_aneurysm_pred_batch, l
         int(sum_aneurysm_pred_batch)) + '\n')
     file.write(train_eval + 'LossEpoch' + str(epoch) + ', Difference: ' + str(
         int(sum_aneurysm_pred_batch - sum_aneurysm_truth_batch)) + '\n')
-    file.write(train_eval + 'LossEpoch' + str(epoch) + ', BCEWithLogitsLoss Mean: ' + str(np.mean(loss_batch)) + '\n')
+    file.write(train_eval + 'LossEpoch' + str(epoch) + ', Loss Mean: ' + str(np.mean(loss_batch)) + '\n')
 
 
 if __name__ == "__main__":
@@ -135,6 +135,9 @@ if __name__ == "__main__":
 
     model_path = os.path.join(models_path, model_name)
     model_optimizer_path = os.path.join(models_path, model_name_optimizer)
+
+    last_model_path = os.path.join(models_path, "last_" + model_name)
+    last_model_optimizer_path = os.path.join(models_path, "last_" + model_name_optimizer)
 
     # Printing used settings (parsed or default)
     print("Using data path: ", data_path)
@@ -206,9 +209,9 @@ if __name__ == "__main__":
 
     model = model.double()
 
-    if os.path.isfile(model_path) and arguments.train_existing_model:
-        print("Loading existing model from: ", model_path)
-        model.load_state_dict(torch.load(model_path))
+    if os.path.isfile(last_model_path) and arguments.train_existing_model:
+        print("Loading existing model from: ", last_model_path)
+        model.load_state_dict(torch.load(last_model_path))
     else:
         print("Training new model at: ", model_path)
 
@@ -222,7 +225,7 @@ if __name__ == "__main__":
         criterion = FocalLoss(pos_weight=torch.tensor(10.), gamma=2, reduction='mean')  # pos_weight info: https://discuss.pytorch.org/t/how-to-apply-weighted-loss-to-a-binary-segmentation-problem/35317
     elif loss_metric == "BCE":
         print("Using Binary Cross Entropy Loss")
-        criterion = nn.BCEWithLogitsLoss()
+        criterion = nn.BCELoss()
 
     criterion.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -270,6 +273,9 @@ if __name__ == "__main__":
                 torch.save(optimizer.state_dict(), model_optimizer_path)
                 best_loss_log_file.write(str(curr_best_batch_loss) + '\n')
                 best_loss_log_file.flush()
+
+            torch.save(model.state_dict(), last_model_path)
+            torch.save(optimizer.state_dict(), last_model_optimizer_path)
 
             write_stats_after_epoch(sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
                                     epoch, 'Eval', loss_log_file)
