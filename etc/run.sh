@@ -37,4 +37,10 @@ else
   args="${args} --loss ${LOSS}"
 fi
 
+if [[ -z "${RESIZING}" ]]; then
+  args="${args}"
+else
+  args="${args} --resizing"
+fi
+
 python -u -m src.main $args >&1

@@ -24,7 +24,7 @@ class DenseNetSeg3D(nn.Module):
 
         self.dense_block_1 = DenseBlock(in_channels=32, n_layers=4, growth_rate=self.growth_rate, device=device, device_ids=device_ids)
         self.deconvolution1 = torch.nn.DataParallel(Deconvolution(in_channels=96, kernel_size=(4, 4, 4), stride=(2, 2, 2)), device_ids=device_ids).to(device)
-        self.transition1 = torch.nn.DataParallel(TransitionLayer(in_channels=96, reduction=self.reduction)).to(device)
+        self.transition1 = torch.nn.DataParallel(TransitionLayer(in_channels=96, reduction=self.reduction), device_ids=device_ids).to(device)
 
         self.dense_block_2 = DenseBlock(in_channels=48, n_layers=4, growth_rate=self.growth_rate, device=device, device_ids=device_ids)
         self.deconvolution2 = torch.nn.DataParallel(Deconvolution(in_channels=112, kernel_size=(6, 6, 6), stride=(4, 4, 4)), device_ids=device_ids).to(device)
@@ -33,10 +33,11 @@ class DenseNetSeg3D(nn.Module):
         self.dense_block_3 = DenseBlock(in_channels=56, n_layers=4, growth_rate=self.growth_rate, device=device, device_ids=device_ids)
         self.deconvolution3_128 = torch.nn.DataParallel(Deconvolution(in_channels=120, kernel_size=(10, 10, 14), stride=(8, 8, 8)), device_ids=device_ids).to(device)
         self.deconvolution3_64 = torch.nn.DataParallel(Deconvolution(in_channels=120, kernel_size=(10,10,10), stride=(8,8,8)), device_ids=device_ids).to(device)
-        self.transition3 = torch.nn.DataParallel(TransitionLayer(in_channels=120, reduction=self.reduction), device_ids=device_ids).to(device)
+        self.transition3 = torch.nn.DataParallel(TransitionLayer(in_channels=120, reduction=self.reduction, kernel_size_conv2=(2,2,1), stride_conv2=(2,2,1)), device_ids=device_ids).to(device)
 
         self.dense_block_4 = DenseBlock(in_channels=60, n_layers=4, growth_rate=self.growth_rate, device=device, device_ids=device_ids)
         self.batch_norm2_3D = torch.nn.DataParallel(nn.BatchNorm3d(124), device_ids=device_ids).to(device)
+        self.deconvolution4_256x256x8 = torch.nn.DataParallel(Deconvolution(in_channels=124, kernel_size=(18, 18, 10), stride=(16, 16, 1)), device_ids=device_ids).to(device)
         self.deconvolution4_128 = torch.nn.DataParallel(Deconvolution(in_channels=124, kernel_size=(18, 18, 22), stride=(16, 16, 16)), device_ids=device_ids).to(device)
         self.deconvolution4_64 = torch.nn.DataParallel(Deconvolution(in_channels=124, kernel_size=(18, 18, 18), stride=(16, 16, 16)), device_ids=device_ids).to(device)
         self.conv4 = torch.nn.DataParallel(nn.Conv3d(96, out_channels=1, kernel_size=(1, 1, 1), stride=(1, 1, 1)), device_ids=device_ids).to(device)

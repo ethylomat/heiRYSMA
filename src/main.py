@@ -89,11 +89,11 @@ if __name__ == "__main__":
     parser.add_argument('--model-dir', dest='models_path', default=None, help='Absolute path of the model directory')
     parser.add_argument('--resolution', nargs=3, type=int, dest='resolution', default=[64, 64, 64],
                         help='Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)')
-    parser.add_argument('--overlap', dest='overlap', default=10, help='Overlap for cropping')
+    parser.add_argument('--overlap', type=int, dest='overlap', default=10, help='Overlap for cropping')
     parser.add_argument('--augmented', action='store_false', default=False, dest='augmented',
                         help='Add flipped, rotated and brighter data')
     parser.add_argument('--batch-size', dest='batch_size', default=8, type=int, help='Batch size')
-    parser.add_argument('--resizing', action='store_false', default=False, dest='resizing',
+    parser.add_argument('--resizing', action='store_true', default=False, dest='resizing',
                         help='Resizing (default is cropping)')
     parser.add_argument('--learning-rate', dest='learning_rate', default=0.0001, type=float, help='Learning rate')
     parser.add_argument('--existing-model', action='store_true', default=True, dest='train_existing_model',
@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     target_resolution = tuple(
         arguments.resolution)  # modify here if other resolution needed, currently available (64, 64, 64) and (128, 128, 100)
-    overlap = arguments.overlap  # overlap for cropping
+    overlap = int(arguments.overlap)  # overlap for cropping
     batch_size = arguments.batch_size
     include_augmented_data = arguments.augmented  # enable if flipped data (vertically + horizonatally), rotated data (180 degrees) and brighter data 5% wanted
     include_resizing = arguments.resizing  # enable if resizing wanted, else cropping applied
