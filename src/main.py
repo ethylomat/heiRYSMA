@@ -112,7 +112,8 @@ def create_loss_log_file(model_name):
     return f
 
 
-def write_stats_after_epoch(mean_h95, mean_vs, mean_dsc):
+def write_stats_after_epoch(loss_batch, mean_h95, mean_vs, mean_dsc):
+    print('BCEWithLogitsLoss: ' + str(np.mean(loss_batch)))
     print(f"Mean Hausdorff: {mean_h95}")
     print(f"Mean Volumetric Similarity: {mean_vs}")
     print(f"Mean Dice Coefficient: {mean_dsc}")
@@ -208,7 +209,7 @@ if __name__ == "__main__":
         mean_train_vs = sum_vs_train / train_vs_counter
         mean_train_dsc = sum_dsc_train / train_dsc_counter
 
-        write_stats_after_epoch(mean_train_h95, mean_train_vs, mean_train_dsc)
+        write_stats_after_epoch(loss_batch_train, mean_train_h95, mean_train_vs, mean_train_dsc)
 
         if (epoch + 1) % 10 == 0:
             sum_h95_eval, sum_vs_eval, sum_dsc_eval = 0, 0, 0
@@ -241,6 +242,6 @@ if __name__ == "__main__":
 
             torch.save(model.state_dict(), model_name)
 
-            write_stats_after_epoch(mean_eval_h95, mean_eval_vs, mean_eval_dsc)
+            write_stats_after_epoch(loss_batch_eval, mean_eval_h95, mean_eval_vs, mean_eval_dsc)
 
     file.close()
