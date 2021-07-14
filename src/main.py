@@ -251,7 +251,7 @@ if __name__ == "__main__":
                                 'Train', loss_log_file)
 
         if (epoch + 1) % 1 == 0:
-            model.eval()
+            #model.eval()
 
             sum_aneurysm_truth_batch_eval = 0
             sum_aneurysm_pred_batch_eval = 0
