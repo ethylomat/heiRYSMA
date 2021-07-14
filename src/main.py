@@ -230,9 +230,9 @@ if __name__ == "__main__":
     criterion.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    if os.path.isfile(model_optimizer_path) and arguments.train_existing_model:
-        print("Loading existing model optimizer from: ", model_optimizer_path)
-        optimizer.load_state_dict(torch.load(model_name_optimizer))
+    if os.path.isfile(last_model_optimizer_path) and arguments.train_existing_model:
+        print("Loading existing model optimizer from: ", last_model_optimizer_path)
+        optimizer.load_state_dict(torch.load(last_model_optimizer_path))
 
     for epoch in tqdm(range(5000), desc='Epoch'):
 
