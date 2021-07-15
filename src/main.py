@@ -241,7 +241,7 @@ if __name__ == "__main__":
         sum_aneurysm_pred_batch_train = 0
         loss_batch_train = []
         # training
-        for train_step, [train_ex, train_l] in enumerate(tqdm(train, desc='Train')):
+        for train_step, [train_ex, train_l, data_shape] in enumerate(tqdm(train, desc='Train')):
             sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train = run_model_get_scores(
                 train_ex, train_l, device, target_resolution,
                 sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train,
