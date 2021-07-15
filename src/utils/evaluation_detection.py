@@ -32,7 +32,7 @@ def get_locations(test_filename):
 
     # Read comma-separated coordinates from a text file.
     with warnings.catch_warnings():
-        # Suppress empty file warning from genfromtxt.
+        # Suppress empty file warning from genfromtxt.<
         warnings.filterwarnings("ignore", message=".*Empty input file.*")
 
         # atleast_2d() makes sure that test_locations is a 2D array, even if there is just a single location.

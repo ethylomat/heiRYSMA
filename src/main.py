@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 import torch
 import torch.nn as nn
@@ -9,10 +10,11 @@ from utils.dataloader import AneurysmDataset
 from utils.DenseSeg import DenseNetSeg3D
 from utils.metrics import dice
 from utils.evaluation import get_dsc, get_hausdorff, get_vs, get_images
+from utils.evaluation_detection import  get_locations, get_result_filename, get_result, get_treated_locations, get_detection_metrics
 import SimpleITK as sitk
 
 
-def get_metrics(scores, labels):
+def get_metrics(scores, labels, locations):
     # binarize -> hard decision -> if pixel > 0.5 -> aneurysm, else not
     preds = np.zeros_like(scores)
     preds[scores < 0.5] = 0
@@ -25,7 +27,18 @@ def get_metrics(scores, labels):
     h95 = get_hausdorff(test_image, result_image)
     vs = get_vs(test_image, result_image)
 
-    return h95, vs, dsc
+    result_filename = get_result_filename(locations)
+    result_locations = get_result(result_filename)
+
+    test_locations = get_locations(os.path.join(locations, 'location.txt'))
+    test_image = sitk.ReadImage(os.path.join(locations, 'aneurysms.nii.gz'))
+
+    sensitivity, false_positive_count = get_detection_metrics(test_locations, result_locations, test_image)
+
+    print('Sensitivity: %.3f (higher is better, max=1)' % sensitivity)
+    print('False Positive Count: %d (lower is better)' % false_positive_count)
+
+    return h95, vs, dsc, sensitivity, false_positive_count
 
 
 # location holen
@@ -58,8 +71,7 @@ def get_metrics(scores, labels):
    ## pred_images = sitk.BinaryThreshold(sitk.GetImageFromArray(aneurysm_clusters),
      ##                                  lowerThreshold=1, upperThreshold=num)
 
-
-def run_model_get_scores(example, label, device, target_resolution, file, epoch, step, train=True):
+def run_model_get_scores(example, label, location, device, target_resolution, file, epoch, step, train=True):
     label = label.type(torch.LongTensor)
     label = label.to(device)
     example = example.to(device)
@@ -70,8 +82,11 @@ def run_model_get_scores(example, label, device, target_resolution, file, epoch,
     loss = criterion(scores, label.float())
     loss_val = loss.item()
 
-    batch_h95, batch_vs, batch_dsc = 0, 0, 0
-    h95_counter, vs_counter, dsc_counter = 0, 0, 0
+    # center of mass label
+    # center of scores
+
+    batch_h95, batch_vs, batch_dsc, batch_sens, batch_fpc = 0, 0, 0, 0, 0
+    h95_counter, vs_counter, dsc_counter, sens_counter, fpc_counter = 0, 0, 0, 0, 0
 
     if train:
         optimizer.zero_grad()
@@ -81,8 +96,8 @@ def run_model_get_scores(example, label, device, target_resolution, file, epoch,
     else:
         file.write('EvalLossEpoch' + str(epoch) + 'Step' + str(step) + ': ' + str(loss_val) + '\n')
 
-    for l, s in zip(label.detach().cpu().numpy(), scores.detach().cpu().numpy()):
-        h95, vs, dsc = get_metrics(s.squeeze(), l.squeeze())
+    for l, s, loc in zip(label.detach().cpu().numpy(), scores.detach().cpu().numpy(), location.detach().cpu().numpy()):
+        h95, vs, dsc, sensitivity, false_positive_count = get_metrics(s.squeeze(), l.squeeze(), loc.squeeze())
         if not np.isnan(h95):
             batch_h95 += h95
             h95_counter += 1
@@ -92,6 +107,12 @@ def run_model_get_scores(example, label, device, target_resolution, file, epoch,
         if not np.isnan(dsc):
             batch_dsc += dsc
             dsc_counter += 1
+        if not np.isnan(sensitivity):
+            batch_sens += sensitivity
+            sens_counter += 1
+        if not np.isnan(false_positive_count):
+            batch_fpc += false_positive_count
+            fpc_counter += 1
 
     # sum_aneurysm_truth = torch.sum(label)
     # sum_aneurysm_truth_batch += sum_aneurysm_truth.item()
@@ -101,8 +122,10 @@ def run_model_get_scores(example, label, device, target_resolution, file, epoch,
     mean_h95 = batch_h95 / h95_counter if h95_counter > 0 else np.nan
     mean_vs = batch_vs / vs_counter if vs_counter > 0 else np.nan
     mean_dsc = batch_dsc / dsc_counter if dsc_counter > 0 else np.nan
+    mean_sens = batch_sens / sens_counter if sens_counter > 0 else np.nan
+    mean_fpc = batch_fpc / fpc_counter if fpc_counter > 0 else np.nan
 
-    return {"loss": loss_val, "h95": mean_h95, "vs": mean_vs, "dsc": mean_dsc}
+    return {"loss": loss_val, "h95": mean_h95, "vs": mean_vs, "dsc": mean_dsc, "sensitivity": mean_sens, "false_positive_count": mean_fpc}
 
 
 def create_loss_log_file(model_name):
@@ -189,9 +212,9 @@ if __name__ == "__main__":
         loss_batch_train = []
         train_h95_counter, train_vs_counter, train_dsc_counter = 0, 0, 0
         # training
-        for train_step, [train_ex, train_l] in enumerate(tqdm(train, desc='Train')):
+        for train_step, [train_ex, train_l, train_loc] in enumerate(tqdm(train, desc='Train')):
             metrics_train = run_model_get_scores(
-                train_ex, train_l, device, target_resolution,
+                train_ex, train_l, train_loc, device, target_resolution,
                 file, epoch, train_step, train=True)
 
             loss_batch_train.append(metrics_train["loss"])

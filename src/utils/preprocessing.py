@@ -6,6 +6,7 @@ import cv2
 from cv2 import flip
 from cv2 import rotate
 from utils import cropper
+from utils.evaluation import get_center_of_mass
 
 
 def load_niigz_as_npy(data_path):
@@ -25,7 +26,7 @@ def load_niigz_as_npy(data_path):
             			List of (different shapes) npy arrays containing binary masks corresponding to data_orig.
     """
 
-    sub_dirs = [x[0] for x in  os.walk(data_path)]
+    sub_dirs = [x[0] for x in os.walk(data_path)]
     if((os.path.join(data_path, '10001') not in sub_dirs) and (os.path.join(data_path, 'preprocessed') not in sub_dirs)):
         raise ValueError("There is no data in the directory to work with! Check the data directory / data_path to data directory and try again...")
     data_orig = []
@@ -148,12 +149,16 @@ def augment_data(data_orig, data_mask):
 
     augmented_data_list_orig = []
     augmented_data_list_mask = []
+    augmented_data_list_loc = []
     for i in range(len(data_orig)):
         flipVertical_orig = flip(data_orig[i], 0)
         flipHorizontal_orig = flip(data_orig[i], 1)
         rotate180_orig = rotate(data_orig[i], cv2.ROTATE_180)
         brighter5percent_orig = data_orig[i] + int(data_orig[i].max() * 0.05)
         augmented_data_list_orig.append([data_orig[i], flipVertical_orig, flipHorizontal_orig, rotate180_orig, brighter5percent_orig])
+
+        #calculate center of mass
+        augmented_data_list_loc.append(get_center_of_mass(rotate180_orig))
 
         flipVertical_mask = flip(data_mask[i], 0)
         flipHorizontal_mask = flip(data_mask[i], 1)
@@ -164,7 +169,7 @@ def augment_data(data_orig, data_mask):
     augmented_data_list_orig = [item for sublist in augmented_data_list_orig for item in sublist]
     augmented_data_list_mask = [item for sublist in augmented_data_list_mask for item in sublist]
     print('DONE: augmenting images')
-    return augmented_data_list_orig, augmented_data_list_mask
+    return augmented_data_list_orig, augmented_data_list_mask, augmented_data_list_loc
 
 
 def crop_data(data_orig, data_mask, crop_size_xy, crop_size_z, overlap):
@@ -207,7 +212,7 @@ def crop_data(data_orig, data_mask, crop_size_xy, crop_size_z, overlap):
         cropped_data_mask += [cropped_data_mask_curr[i] for i in indeces_valid_resolution]
 
     indices_aneurysm_in_mask = np.unique(np.where(np.array(cropped_data_mask) == 1)[0])  # get cubes where aneurysm in the mask
-    cropped_data_orig_aug, cropped_data_mask_aug = augment_data([cropped_data_orig[i] for i in indices_aneurysm_in_mask], [cropped_data_mask[i] for i in indices_aneurysm_in_mask])  # augment data with aneurysms in the mask
+    cropped_data_orig_aug, cropped_data_mask_aug, cropped_data_loc = augment_data([cropped_data_orig[i] for i in indices_aneurysm_in_mask], [cropped_data_mask[i] for i in indices_aneurysm_in_mask])  # augment data with aneurysms in the mask
 
     indices_no_aneurysm_in_mask = [s for s in np.arange(0,len(cropped_data_mask)) if s not in indices_aneurysm_in_mask]  # get indeces where no aneurysm in the mask
     rnd_ind_no_aneurysm_in_mask = np.random.choice(indices_no_aneurysm_in_mask, len(cropped_data_orig_aug))  # get so many data from non aneurysm dataset as there are in the augmented aneurysm (cropped_data_orig_aug)
@@ -217,4 +222,4 @@ def crop_data(data_orig, data_mask, crop_size_xy, crop_size_z, overlap):
 
     print('DONE: cropping images')
 
-    return cropped_data_orig, cropped_data_mask
+    return cropped_data_orig, cropped_data_mask, cropped_data_loc
