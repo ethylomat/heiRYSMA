@@ -2,12 +2,13 @@ import torch
 import os
 import numpy as np
 from src.utils import preprocessing
+from src.utils import preprocessing_challenge
 
 
 class AneurysmDataset(torch.utils.data.Dataset):
     """Aneurysm dataset."""
 
-    def __init__(self, data_path, target_resolution, overlap, include_augmented_data, include_resizing, train_eval_test):
+    def __init__(self, data_path, target_resolution, overlap, include_augmented_data, include_resizing, train_eval_test, challenge_mode_on=False):
         """
         Args:
             data_path (string): Path to dir with all the (not processed) data.
@@ -33,52 +34,71 @@ class AneurysmDataset(torch.utils.data.Dataset):
 
         print('INIT: Anerurysm Dataset, mode train_eval_test activated: ' + str(train_eval_test) + '...')
 
-        if (os.path.isfile(path_data_resized_orig) and os.path.isfile(path_data_resized_mask)):
-            print('Resized / cropped data ' + str(target_resolution) + ' found. Loading in progress...')
-            self.data, self.mask = preprocessing.load_data_from_npy(data_path, resized_file_name_orig, resized_file_name_mask)
+
+        if challenge_mode_on:
+            print('Challenge mode on...')
+
+            self.data = preprocessing_challenge.load_niigz_as_npy_challenge(data_path)
+            self.data_shape = self.data.shape
+            self.challenge_mode_on = True
+
+            self.data = preprocessing_challenge.resize_width_height_skimage_challenge(self.data, 256)
+            self.data = preprocessing_challenge.crop_data_challenge(self.data)
+
+            self.data = torch.tensor(self.data)
+
         else:
-            if(os.path.isfile(path_data_orig)):
-                print('No resized / cropped data ' + str(target_resolution) + ' found under the path: ' + path_data_resized_orig)
-                print('Original npy data available. Loading in progress...')
-                self.data, self.mask = preprocessing.load_data_from_npy(data_path, 'data_orig', 'data_mask', True)
-                self.data = self.data.tolist()
-                self.mask = self.mask.tolist()
-
+            self.challenge_mode_on = False
+            self.data_shape = 0
+            if (os.path.isfile(path_data_resized_orig) and os.path.isfile(path_data_resized_mask)):
+                print('Resized / cropped data ' + str(target_resolution) + ' found. Loading in progress...')
+                self.data, self.mask = preprocessing.load_data_from_npy(data_path, resized_file_name_orig, resized_file_name_mask)
             else:
-                print('No original npy data available under the path: ' + path_data_orig)
-                print('Preprocessing from niigz files in progress...')
-                self.data, self.mask = preprocessing.load_niigz_as_npy(data_path)
-                preprocessing.save_data_as_npy(data_path, self.data, self.mask, 'data_orig', 'data_mask')
+                if(os.path.isfile(path_data_orig)):
+                    print('No resized / cropped data ' + str(target_resolution) + ' found under the path: ' + path_data_resized_orig)
+                    print('Original npy data available. Loading in progress...')
+                    self.data, self.mask = preprocessing.load_data_from_npy(data_path, 'data_orig', 'data_mask', True)
+                    self.data = self.data.tolist()
+                    self.mask = self.mask.tolist()
 
-            if include_resizing:
-                self.data, self.mask = preprocessing.resize_width_height_skimage(self.data, self.mask,
-                                                                             target_resolution=target_resolution)
-                if target_resolution[2]==0:
-                    self.data, self.mask = preprocessing.crop_data(self.data, self.mask,
-                                                                   crop_size_xy=target_resolution[0],
-                                                                   crop_size_z=8, overlap=overlap, include_augment=True)
-                if include_augmented_data:
-                    self.data, self.mask = preprocessing.augment_data(self.data, self.mask)
+                else:
+                    print('No original npy data available under the path: ' + path_data_orig)
+                    print('Preprocessing from niigz files in progress...')
+                    self.data, self.mask = preprocessing.load_niigz_as_npy(data_path)
+                    preprocessing.save_data_as_npy(data_path, self.data, self.mask, 'data_orig', 'data_mask')
+
+                if include_resizing:
+                    self.data, self.mask = preprocessing.resize_width_height_skimage(self.data, self.mask,
+                                                                                 target_resolution=target_resolution)
+                    # return here also the resolution array with all 140 items for test challenge
+                    # self.data, self.mask, self.original_resolutions
+
+                    if target_resolution[2]==0:
+                        self.data, self.mask = preprocessing.crop_data(self.data, self.mask,
+                                                                       crop_size_xy=target_resolution[0],
+                                                                       crop_size_z=8, overlap=overlap, include_augment=True)
+                    if include_augmented_data:
+                        self.data, self.mask = preprocessing.augment_data(self.data, self.mask)
+                else:
+                    self.data, self.mask = preprocessing.crop_data(self.data, self.mask, crop_size_xy=target_resolution[0], crop_size_z=target_resolution[2], overlap=overlap, include_augment=True)  # augmenting / balancing included
+                preprocessing.save_data_as_npy(data_path, self.data, self.mask, resized_file_name_orig, resized_file_name_mask)
+
+            # shuffle always with same order
+            self.shuffle_data(data_path)
+
+            # convert to torch tensors
+            self.data = torch.tensor(self.data)
+            self.mask = torch.tensor(self.mask)
+
+            if train_eval_test == 'train':
+                self.data = self.data[:int(len(self.data) * 0.7)]
+                self.mask = self.mask[:int(len(self.mask) * 0.7)]
+            elif train_eval_test == 'eval':
+                self.data = self.data[int(len(self.data) * 0.7): int(len(self.data) * 0.85)]
+                self.mask = self.mask[int(len(self.mask) * 0.7): int(len(self.mask) * 0.85)]
             else:
-                self.data, self.mask = preprocessing.crop_data(self.data, self.mask, crop_size_xy=target_resolution[0], crop_size_z=target_resolution[2], overlap=overlap, include_augment=True)  # augmenting / balancing included
-            preprocessing.save_data_as_npy(data_path, self.data, self.mask, resized_file_name_orig, resized_file_name_mask)
-
-        # shuffle always with same order
-        self.shuffle_data(data_path)
-
-        # convert to torch tensors
-        self.data = torch.tensor(self.data)
-        self.mask = torch.tensor(self.mask)
-
-        if train_eval_test == 'train':
-            self.data = self.data[:int(len(self.data) * 0.7)]
-            self.mask = self.mask[:int(len(self.mask) * 0.7)]
-        elif train_eval_test == 'eval':
-            self.data = self.data[int(len(self.data) * 0.7): int(len(self.data) * 0.85)]
-            self.mask = self.mask[int(len(self.mask) * 0.7): int(len(self.mask) * 0.85)]
-        else:
-            self.data = self.data[int(len(self.data) * 0.85):]
-            self.mask = self.mask[int(len(self.mask) * 0.85):]
+                self.data = self.data[int(len(self.data) * 0.85):]
+                self.mask = self.mask[int(len(self.mask) * 0.85):]
 
 
 
@@ -104,9 +124,12 @@ class AneurysmDataset(torch.utils.data.Dataset):
         data.float()
         if data.max() > 0:
             data = (data - torch.min(data)) / torch.max(data - torch.min(data))  # normalize
-        mask = self.mask[idx]
-        if mask.max() > 0:
-            mask = (mask - torch.min(mask)) / torch.max(mask - torch.min(mask))  # normalize
-            mask[mask > 0.5] = 1.0  # convert to binary resized masks -> 0: no aneurysm vs 1: aneurysm
-            mask[mask <= 0.5] = 0.0  # convert to binary resized masks -> 0: no aneurysm vs 1: aneurysm
-        return data, mask
+
+        mask = 0
+        if not self.challenge_mode_on:
+            mask = self.mask[idx]
+            if mask.max() > 0:
+                mask = (mask - torch.min(mask)) / torch.max(mask - torch.min(mask))  # normalize
+                mask[mask > 0.5] = 1.0  # convert to binary resized masks -> 0: no aneurysm vs 1: aneurysm
+                mask[mask <= 0.5] = 0.0  # convert to binary resized masks -> 0: no aneurysm vs 1: aneurysm
+        return data, mask, self.data_shape
