@@ -1,24 +1,39 @@
 import torch
 from tqdm.auto import tqdm
 import os
-from utils.dataloader import AneurysmDataset
-from utils.DenseSeg import DenseNetSeg3D
+import re
+from src.utils.dataloader import AneurysmDataset
+from src.utils.DenseSeg import DenseNetSeg3D
 import numpy as np
-from utils import cropper
-from utils import preprocessing_challenge
+from src.utils import cropper
+from src.utils import preprocessing_challenge
 import nibabel as nib
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='heiRYSMA')
+    parser.add_argument('--data', dest='data_path', default=None, help='Absolute path of the data directory')
+    parser.add_argument('--model', dest='model_path', default=None, help='Absolute path of the model directory')
+    parser.add_argument('--resolution', nargs=3, type=int, dest='resolution', default=[256, 256, 0],
+                        help='Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)')
+    parser.add_argument('--overlap', type=int, dest='overlap', default=1, help='Overlap for cropping')
+    parser.add_argument('--loss', dest='loss_fct', default=None, help='Loss function')
 
-    data_path = ...  # insert absolute path to the single TOF MRA data directory (which includes /input/orig and /output)
-    target_resolution = (256, 256, 0)  # has to be (256, 256, 0)
-    overlap = 1  # has to be 1
+    target_resolution = tuple(arguments.resolution)
+    data_path = arguments.data_path  # insert absolute path to the single TOF MRA data directory (which includes /input/orig and /output)
+    overlap = arguments.overlap  # has to be 1
     batch_size = 1
     include_augmented_data = False  # not relevant for challenge
     include_resizing = True  # not relevant for challenge
-    model_name = 'last_trained_model'  # model for challenge
-    loss_fct = "BCE"  # or FCL or DICE, relevant -> forward method in DenseSeg
+    model_name = arguments.model_path  # model for challenge
+    
+    if arguments.loss_fct is not None:
+        loss_fct = arguments.loss_fct
+    else:
+        try:
+            loss_fct = re.search(r"model__([A-Z]+)__", model_name).group(1)
+        except AttributeError:
+            raise AttributeError("No loss function indicated: Use --loss param.")
 
     test_challenge = torch.utils.data.DataLoader(
         AneurysmDataset(
@@ -41,7 +56,7 @@ if __name__ == "__main__":
     model = model.double()
     model.to(device)
 
-    model.load_state_dict(torch.load(model_name), strict=False)
+    model.load_state_dict(torch.load(model_name, map_location=device), strict=False)
 
     scores_arr = []
     data_shape = (0,0,0)
