@@ -9,12 +9,12 @@ from tqdm.auto import tqdm
 from utils.dataloader import AneurysmDataset
 from utils.DenseSeg import DenseNetSeg3D
 from utils.metrics import dice
-from utils.evaluation import get_dsc, get_hausdorff, get_vs, get_images
+from utils.evaluation import get_dsc, get_hausdorff, get_vs, get_images, get_center_of_mass
 from utils.evaluation_detection import  get_locations, get_result_filename, get_result, get_treated_locations, get_detection_metrics
 import SimpleITK as sitk
 
 
-def get_metrics(scores, labels, locations):
+def get_metrics(scores, labels, locations, cropped_data_mask):
     # binarize -> hard decision -> if pixel > 0.5 -> aneurysm, else not
     preds = np.zeros_like(scores)
     preds[scores < 0.5] = 0
@@ -33,7 +33,7 @@ def get_metrics(scores, labels, locations):
     test_locations = get_locations(os.path.join(locations, 'location.txt'))
     test_image = sitk.ReadImage(os.path.join(locations, 'aneurysms.nii.gz'))
 
-    sensitivity, false_positive_count = get_detection_metrics(test_locations, result_locations, test_image)
+    sensitivity, false_positive_count = get_detection_metrics(test_locations, result_locations, cropped_data_mask)
 
     print('Sensitivity: %.3f (higher is better, max=1)' % sensitivity)
     print('False Positive Count: %d (lower is better)' % false_positive_count)
@@ -71,7 +71,7 @@ def get_metrics(scores, labels, locations):
    ## pred_images = sitk.BinaryThreshold(sitk.GetImageFromArray(aneurysm_clusters),
      ##                                  lowerThreshold=1, upperThreshold=num)
 
-def run_model_get_scores(example, label, location, device, target_resolution, file, epoch, step, train=True):
+def run_model_get_scores(example, label, location, device, target_resolution, file, epoch, step, train=True, cropped_data_mask):
     label = label.type(torch.LongTensor)
     label = label.to(device)
     example = example.to(device)
@@ -82,8 +82,8 @@ def run_model_get_scores(example, label, location, device, target_resolution, fi
     loss = criterion(scores, label.float())
     loss_val = loss.item()
 
-    # center of mass label
-    # center of scores
+    label_com = get_center_of_mass(label)
+    scores_com = get_center_of_mass(scores)
 
     batch_h95, batch_vs, batch_dsc, batch_sens, batch_fpc = 0, 0, 0, 0, 0
     h95_counter, vs_counter, dsc_counter, sens_counter, fpc_counter = 0, 0, 0, 0, 0
