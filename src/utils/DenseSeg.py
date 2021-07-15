@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class DenseNetSeg3D(nn.Module):
     # growth_rate in our case 16
-    def __init__(self, device, device_ids=[0]):
+    def __init__(self, device, device_ids=[0], target_resolution=None):
         super(DenseNetSeg3D, self).__init__()
 
         self.device = device
@@ -35,7 +35,9 @@ class DenseNetSeg3D(nn.Module):
         self.deconvolution3_64 = torch.nn.DataParallel(Deconvolution(in_channels=120, kernel_size=(10,10,10), stride=(8,8,8)), device_ids=device_ids).to(device)
         
         self.transition3 = torch.nn.DataParallel(TransitionLayer(in_channels=120, reduction=self.reduction, kernel_size_conv2=(2,2,1), stride_conv2=(2,2,1)), device_ids=device_ids).to(device)
-        self.transition3_128_or_64 = torch.nn.DataParallel(TransitionLayer(in_channels=120, reduction=self.reduction, kernel_size_conv2=(2,2,2), stride_conv2=(2,2,2)), device_ids=device_ids).to(device)
+        
+        if target_resolution in [(64, 64, 64), (128,128,128)]:
+            self.transition3_128_or_64 = torch.nn.DataParallel(TransitionLayer(in_channels=120, reduction=self.reduction, kernel_size_conv2=(2,2,2), stride_conv2=(2,2,2)), device_ids=device_ids).to(device)
 
         self.dense_block_4 = DenseBlock(in_channels=60, n_layers=4, growth_rate=self.growth_rate, device=device, device_ids=device_ids)
         self.batch_norm2_3D = torch.nn.DataParallel(nn.BatchNorm3d(124), device_ids=device_ids).to(device)

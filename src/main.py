@@ -203,9 +203,9 @@ if __name__ == "__main__":
     device_count = torch.cuda.device_count()
 
     if device_count > 1:
-        model = DenseNetSeg3D(device=device, device_ids=list(range(device_count)))
+        model = DenseNetSeg3D(device=device, device_ids=list(range(device_count)), target_resolution=target_resolution)
     else:
-        model = DenseNetSeg3D(device=device, device_ids=[0])
+        model = DenseNetSeg3D(device=device, device_ids=[0], target_resolution=target_resolution)
 
     model = model.double()
 
