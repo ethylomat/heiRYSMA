@@ -258,7 +258,7 @@ if __name__ == "__main__":
             loss_batch_eval = []
 
             # eval
-            for eval_step, [eval_ex, eval_l] in enumerate(tqdm(eval, desc='Eval')):
+            for eval_step, [eval_ex, eval_l, data_shape] in enumerate(tqdm(eval, desc='Eval')):
                 sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval = run_model_get_scores(
                     eval_ex, eval_l, device, target_resolution,
                     sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
