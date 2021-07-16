@@ -1,35 +1,127 @@
-# heiRYSMA
-## Project Seminar - Biomedical Image Analysis
+<!-- PROJECT LOGO -->
+<br />
+<p align="center">
+  <a href="https://github.com/ethylomat/heiRYSMA">
+    <img src="README_LOGO.png" alt="Logo" width="800" height="182">
+  </a>
+</p>
 
-### Preprocessing/Data loading
-#### dataloader.py -> AneurysmDataset:
-- checks if data in target resolution available (if all 113x datapoints are of the target resolution shape, e.g. 560x560x140 stored as npy arrays 
-	in data_path/preprocessed/data_mask_W_H_AmoundSlices.npy (e.g. data_mask_560_560_140.npy) with corresponding masks (e.g. data_mask_560_560_140.npy)) or cropped in the target resolution (every datapoint cropped in e.g. n smaller 64x64x64 cubes without scaling)
-  - if yes -> loads training data and test data (70/15/15 ratio, train-eval-test)
-  - if no -> checks if original data (all 113x datapoints of different shapes is stored in data_path/preprocessed/data_orig.npy
-    - if yes -> loads data and the corresponding masks -> resizes them to target resolution (and includes possibly augmentation) or cropps them as described above -> stores them under the path as described above -> loads training data and test data (70/15/15 ratio, train-eval-test)
-    - if no -> loads data and corresponding masks from nii.gz files into npy arrays -> stores them -> resizes them to target resolution -> stores them -> loads training data and test data (70/30 ratio) 
-- the data is shuffled before splitting into train/eval/test (shuffled always in the same order, such that the eval and test data are never included in the train data), shuffling order is stored as np array
-- the train/eval/test data is normalized to range 0-1
-- the train/eval/test masks are set to 1 if > 0.5 (through resizing, the masks are modified and are no longer of a binary form -> normalize again to 0 or 1) 
 
-#### data directory structure: 
-	- data dir 
-		- 10001
-			- orig
-				- TOF.nii.gz
-				...
-			- pre
-				...
-			- aneurysms.nii.gz
-			- location.txt
-		- 10002
-			...
-		...
-		- preprocessed 
-			- data_mask.npy
-			- data_mask_560_560_140.npy
-			...
-			- data_orig.npy
-			- data_orig_560_560_140.npy
-			...
+
+<!-- TABLE OF CONTENTS -->
+<details open="open">
+  <summary><h2 style="display: inline-block">Table of Contents</h2></summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#training">Training</a></li>
+        <li><a href="#evaluation">Evaluation</a></li>
+      </ul>
+    </li>
+    <li><a href="#results">Results</a></li>
+  </ol>
+</details>
+
+
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+
+<!-- BUILD WITH -->
+### Built With
+
+* []()
+* []()
+* []()
+
+
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+
+<!-- INSTALLATION -->
+### Installation
+
+- Clone the repo
+```sh
+$ git clone https://github.com/ethylomat/heiRYSMA.git
+Cloning into 'heiRYSMA'...
+remote: Enumerating objects: 488, done.
+remote: Counting objects: 100% (488/488), done.
+remote: Compressing objects: 100% (330/330), done.
+...
+$ cd heiRYSMA
+```
+
+For training the model first install all prerequisites as stated in the requirements.txt. We recommend using virtual environments (pyvenv or pipenv) to install all needed packages. Our sofware was developed and tested using Python Verion 3.8.5.
+
+```sh
+$ python --version # check python version
+Python 3.8.5
+$ python -m venv venv
+$ . venv/bin/activate
+$ pip install -r requirements.txt
+```
+
+<!-- TRAINING -->
+### Training
+
+
+- New models can be trained using the main function. To see all available parameters append `--help` to the command. Make sure the files in the data directory have the correct directory structure.
+```sh
+$ python -m src.main --help
+usage: main.py [-h] [--data DATA_PATH] [--model-dir MODELS_PATH] [--resolution RESOLUTION RESOLUTION RESOLUTION] [--overlap OVERLAP] [--augmented] [--batch-size BATCH_SIZE] [--resizing]
+               [--learning-rate LEARNING_RATE] [--existing-model] [--loss LOSS_METRIC]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --data DATA_PATH      Absolute path of the data directory
+  --model-dir MODELS_PATH
+                        Absolute path of the model directory
+  --resolution RESOLUTION RESOLUTION RESOLUTION
+                        Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)
+  --overlap OVERLAP     Overlap for cropping
+  --augmented           Add flipped, rotated and brighter data
+  --batch-size BATCH_SIZE
+                        Batch size
+  --resizing            Resizing (default is cropping)
+  --learning-rate LEARNING_RATE
+                        Learning rate
+  --existing-model      Training of existing model (if exist)
+```
+
+- Example usage:
+```sh
+$ python -m src.main --data /Users/USER/Workspace/heiRYSMA/data --resolution "64 64 64" --overlap 10 --batch-size 8 --learning-rate 0.0001
+Using data path:  /Users/USER/Workspace/heiRYSMA/data
+Target resolution:  (64, 64, 64)
+Overlap:  10
+Batch size:  8
+Include augmented data:  False
+Include resizing:  False
+Learning rate:  0.0001
+Training existing model:  True
+Model name:  model__DIC__64_64_64__o10__b08__lr0001 
+
+...
+```
+
+<!-- EVALUATION -->
+### Evaluation
+
+
+
+
+<!-- RESULTS -->
+## Results
+

@@ -203,9 +203,9 @@ if __name__ == "__main__":
     device_count = torch.cuda.device_count()
 
     if device_count > 1:
-        model = DenseNetSeg3D(device=device, device_ids=list(range(device_count)))
+        model = DenseNetSeg3D(device=device, device_ids=list(range(device_count)), target_resolution=target_resolution)
     else:
-        model = DenseNetSeg3D(device=device, device_ids=[0])
+        model = DenseNetSeg3D(device=device, device_ids=[0], target_resolution=target_resolution)
 
     model = model.double()
 
@@ -241,7 +241,7 @@ if __name__ == "__main__":
         sum_aneurysm_pred_batch_train = 0
         loss_batch_train = []
         # training
-        for train_step, [train_ex, train_l] in enumerate(tqdm(train, desc='Train')):
+        for train_step, [train_ex, train_l, data_shape] in enumerate(tqdm(train, desc='Train')):
             sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train = run_model_get_scores(
                 train_ex, train_l, device, target_resolution,
                 sum_aneurysm_truth_batch_train, sum_aneurysm_pred_batch_train, loss_batch_train,
@@ -258,7 +258,7 @@ if __name__ == "__main__":
             loss_batch_eval = []
 
             # eval
-            for eval_step, [eval_ex, eval_l] in enumerate(tqdm(eval, desc='Eval')):
+            for eval_step, [eval_ex, eval_l, data_shape] in enumerate(tqdm(eval, desc='Eval')):
                 sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval = run_model_get_scores(
                     eval_ex, eval_l, device, target_resolution,
                     sum_aneurysm_truth_batch_eval, sum_aneurysm_pred_batch_eval, loss_batch_eval,
