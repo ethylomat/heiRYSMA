@@ -2,6 +2,7 @@ import torch
 from tqdm.auto import tqdm
 import os
 import re
+import datetime
 from src.utils.dataloader import AneurysmDataset
 from src.utils.DenseSeg import DenseNetSeg3D
 import numpy as np
@@ -9,26 +10,24 @@ from src.utils import cropper
 from src.utils import preprocessing_challenge
 import nibabel as nib
 
+def logging(data_path, line):
+    with open(os.path.join(data_path, "log.txt"), "a") as f:
+        f.write(f"{datetime.datetime.now()}: {line} <br>\n")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='heiRYSMA')
-    parser.add_argument('--data', dest='data_path', default=None, help='Absolute path of the data directory')
-    parser.add_argument('--model', dest='model_path', default=None, help='Absolute path of the model directory')
-    parser.add_argument('--resolution', nargs=3, type=int, dest='resolution', default=[256, 256, 0],
-                        help='Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)')
-    parser.add_argument('--overlap', type=int, dest='overlap', default=1, help='Overlap for cropping')
-    parser.add_argument('--loss', dest='loss_fct', default=None, help='Loss function')
-
-    target_resolution = tuple(arguments.resolution)
-    data_path = arguments.data_path  # insert absolute path to the single TOF MRA data directory (which includes /input/orig and /output)
-    overlap = arguments.overlap  # has to be 1
+def main(data=None, model=None, resolution=[256,256,0], overlap=1, loss=None, webapp=False):
+    target_resolution = tuple(resolution)
+    data_path = data  # insert absolute path to the single TOF MRA data directory (which includes /input/orig and /output)
+    overlap = overlap  # has to be 1
     batch_size = 1
     include_augmented_data = False  # not relevant for challenge
     include_resizing = True  # not relevant for challenge
-    model_name = arguments.model_path  # model for challenge
-    
-    if arguments.loss_fct is not None:
-        loss_fct = arguments.loss_fct
+    model_name = model  # model for challenge
+
+    if webapp:
+        logging(data_path, "Started processing ...")
+
+    if loss is not None:
+        loss_fct = loss
     else:
         try:
             loss_fct = re.search(r"model__([A-Z]+)__", model_name).group(1)
@@ -61,6 +60,8 @@ if __name__ == "__main__":
     scores_arr = []
     data_shape = (0,0,0)
     for test_challenge_step, [test_challenge_ex, test_challenge_l, data_shape] in enumerate(tqdm(test_challenge, desc='Test Challenge')):
+        if webapp:
+            logging(data_path, f"Step Number: {test_challenge_step}")
         test_challenge_l = test_challenge_l.to(device)
         test_challenge_ex = test_challenge_ex.to(device)
         test_challenge_ex = test_challenge_ex.double()
@@ -87,3 +88,14 @@ if __name__ == "__main__":
 
     nib_final_prediction = nib.Nifti1Image(final_prediction, affine=np.eye(4))
     nib.save(nib_final_prediction, os.path.join(data_path, 'output', 'result.nii.gz'))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='heiRYSMA')
+    parser.add_argument('--data', dest='data_path', default=None, help='Absolute path of the data directory')
+    parser.add_argument('--model', dest='model_path', default=None, help='Absolute path of the model directory')
+    parser.add_argument('--resolution', nargs=3, type=int, dest='resolution', default=[256, 256, 0],
+                        help='Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)')
+    parser.add_argument('--overlap', type=int, dest='overlap', default=1, help='Overlap for cropping')
+    parser.add_argument('--loss', dest='loss_fct', default=None, help='Loss function')
+    arguments = parser.parse_args()
+    main(data=arguments.data_path, model=arguments.model_path, resolution=arguments.resolution, overlap=arguments.overlap, loss=arguments.loss_fct)

@@ -133,7 +133,7 @@ dmypy.json
 .idea
 
 # Project specific
-
+temp/
 logs/*
 src/MODEL_NAME_PLACEHOLDER
 data/*

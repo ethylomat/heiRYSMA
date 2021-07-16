@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block head %}
+  {{ super() }}
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+    var params = [];
+    params["worldSpace"] = false;
+    params["images"] = ["/uploads/{{sample_id}}/input/TOF.nii.gz/"];
+    params["showControls"] = false;
+    params["showImageButtons"] = false;
+
+    var params2 = [];
+    params2["worldSpace"] = false;
+    params2["images"] = ["/uploads/{{sample_id}}/output/result.nii.gz/"];
+    params2["showControls"] = false;
+    params2["showImageButtons"] = false;
+
+    papaya.Container.syncViewers = true;
+</script>
+{% endblock %}
+
+
+{% block content %}
+
+
+<div class="ui column centered grid">
+    <div class="fourteen wide column">
+        <div class="ui segment">
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <h3 style="text-align: center;">Original</h3>
+                    <div class="papaya" data-params="params"></div>
+                </div>
+                <div class="eight wide column">
+                    <h3 style="text-align: center;">Processed Mask</h3>
+                    <div class="papaya" data-params="params2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

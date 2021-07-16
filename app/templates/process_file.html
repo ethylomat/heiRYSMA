@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block head %}
+  {{ super() }}
+{% endblock %}
+
+
+{% block content %}
+
+<div class="ui two column centered grid">
+    <div class="column">
+        <div class="ui segment">
+
+            <div style="text-align: center">
+                <h3>Processing file: {{ task_id }}</h3>
+                <div style="height: 10px;"></div>
+                <div class="lds-roller">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+            </div>
+
+            <div id="log">
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+	
+	(function pollForUpdate(){
+  setTimeout(function(){
+    $.get('/check/{{task_id}}', function(data){
+      console.log(data);
+      if (data == "SUCCESS"){
+        window.location.replace("/show/{{sample_id}}");
+      }
+      if (data == "FAILURE"){
+        alert("Error while processing TOF image");
+      }
+      $( "#log" ).load( "/log/{{sample_id}}" );
+      pollForUpdate();
+    });
+  }, 5000);
+})();
+
+</script>
+
+{% endblock %}

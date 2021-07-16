@@ -1,0 +1,21 @@
+
+.papaya-viewer {
+    line-height: 1;
+    font-family: sans-serif;
+}
+
+
+.papaya-viewer div, .papaya-viewer canvas {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    font-size: 100%;
+    vertical-align: baseline;
+    font-family: sans-serif;
+}
+
+
+.papaya-viewer canvas {
+    cursor: crosshair;
+}

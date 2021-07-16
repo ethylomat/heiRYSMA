@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- CSS debug start -->
+    <link rel="stylesheet" type="text/css" href="/static/css/base.css" />
+    <link rel="stylesheet" type="text/css" href="/static/css/ui/toolbar.css" />
+    <link rel="stylesheet" type="text/css" href="/static/css/ui/menu.css" />
+    <link rel="stylesheet" type="text/css" href="/static/css/ui/dialog.css" />
+    <link rel="stylesheet" type="text/css" href="/static/css/utilities/nojs.css" />
+    <link rel="stylesheet" type="text/css" href="/static/css/utilities/unsupported.css" />
+    <link rel="stylesheet" type="text/css" href="/static/css/viewer/viewer.css" />
+    <!-- CSS debug end -->
+
+    <!-- JS debug start -->
+    <script type="text/javascript" src="/static/js/data/sample-image.js"></script>
+    <script type="text/javascript" src="/static/js/data/talairach-atlas-image.js"></script>
+    <script type="text/javascript" src="/static/js/data/talairach-atlas.js"></script>
+
+    <script type="text/javascript" src="/static/lib/base64-binary.js"></script>
+    <script type="text/javascript" src="/static/lib/bowser.js"></script>
+    <script type="text/javascript" src="/static/lib/daikon.js"></script>
+    <script type="text/javascript" src="/static/lib/nifti-reader.js"></script>
+    <script type="text/javascript" src="/static/lib/jquery.js"></script>
+    <script type="text/javascript" src="/static/lib/numerics.js"></script>
+    <script type="text/javascript" src="/static/lib/pako-inflate.js"></script>
+    <script type="text/javascript" src="/static/lib/gl-matrix.js"></script>
+    <script type="text/javascript" src="/static/lib/gifti-reader.js"></script>
+    <script type="text/javascript" src="/static/lib/GLU.js"></script>
+
+    <script type="text/javascript" src="/static/js/constants.js"></script>
+
+    <script type="text/javascript" src="/static/js/utilities/array-utils.js"></script>
+    <script type="text/javascript" src="/static/js/utilities/math-utils.js"></script>
+    <script type="text/javascript" src="/static/js/utilities/object-utils.js"></script>
+    <script type="text/javascript" src="/static/js/utilities/platform-utils.js"></script>
+    <script type="text/javascript" src="/static/js/utilities/string-utils.js"></script>
+    <script type="text/javascript" src="/static/js/utilities/url-utils.js"></script>
+
+    <script type="text/javascript" src="/static/js/core/coordinate.js"></script>
+    <script type="text/javascript" src="/static/js/core/point.js"></script>
+
+    <script type="text/javascript" src="/static/js/volume/header.js"></script>
+    <script type="text/javascript" src="/static/js/volume/imagedata.js"></script>
+    <script type="text/javascript" src="/static/js/volume/imagedescription.js"></script>
+    <script type="text/javascript" src="/static/js/volume/imagedimensions.js"></script>
+    <script type="text/javascript" src="/static/js/volume/imagerange.js"></script>
+    <script type="text/javascript" src="/static/js/volume/imagetype.js"></script>
+    <script type="text/javascript" src="/static/js/volume/nifti/header-nifti.js"></script>
+    <script type="text/javascript" src="/static/js/volume/dicom/header-dicom.js"></script>
+    <script type="text/javascript" src="/static/js/volume/orientation.js"></script>
+    <script type="text/javascript" src="/static/js/volume/transform.js"></script>
+    <script type="text/javascript" src="/static/js/volume/volume.js"></script>
+    <script type="text/javascript" src="/static/js/volume/voxeldimensions.js"></script>
+    <script type="text/javascript" src="/static/js/volume/voxelvalue.js"></script>
+
+    <script type="text/javascript" src="/static/js/surface/surface.js"></script>
+    <script type="text/javascript" src="/static/js/surface/surface-gifti.js"></script>
+    <script type="text/javascript" src="/static/js/surface/surface-mango.js"></script>
+    <script type="text/javascript" src="/static/js/surface/surface-vtk.js"></script>
+
+    <script type="text/javascript" src="/static/js/ui/dialog.js"></script>
+    <script type="text/javascript" src="/static/js/ui/menu.js"></script>
+    <script type="text/javascript" src="/static/js/ui/menuitem.js"></script>
+    <script type="text/javascript" src="/static/js/ui/menuitemcheckbox.js"></script>
+    <script type="text/javascript" src="/static/js/ui/menuitemradiobutton.js"></script>
+    <script type="text/javascript" src="/static/js/ui/menuitemfilechooser.js"></script>
+    <script type="text/javascript" src="/static/js/ui/menuitemrange.js"></script>
+    <script type="text/javascript" src="/static/js/ui/menuitemslider.js"></script>
+    <script type="text/javascript" src="/static/js/ui/menuitemspacer.js"></script>
+    <script type="text/javascript" src="/static/js/ui/toolbar.js"></script>
+
+    <script type="text/javascript" src="/static/js/viewer/atlas.js"></script>
+    <script type="text/javascript" src="/static/js/viewer/colortable.js"></script>
+    <script type="text/javascript" src="/static/js/viewer/display.js"></script>
+    <script type="text/javascript" src="/static/js/viewer/preferences.js"></script>
+    <script type="text/javascript" src="/static/js/viewer/screenslice.js"></script>
+    <script type="text/javascript" src="/static/js/viewer/screensurface.js"></script>
+    <script type="text/javascript" src="/static/js/viewer/screenvol.js"></script>
+    <script type="text/javascript" src="/static/js/viewer/viewer.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js" integrity="sha512-dqw6X88iGgZlTsONxZK9ePmJEFrmHwpuMrsUChjAw1mRUhUITE5QU9pkcSox+ynfLhL15Sv2al5A0LVyDCmtUw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css" integrity="sha512-8bHTC73gkZ7rZ7vpqUQThUDhqcNFyYi2xgDgPDHc+GXVGHXq+xPjynxIopALmOPqzo9JZj0k6OqqewdGO3EsrQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <script type="text/javascript" src="/static/js/main.js"></script>
+    <script type="text/javascript" src="/static/script.js"></script>
+    <!-- JS debug end -->
+
+
+    <script type="text/javascript">
+        var params = [];
+        params["worldSpace"] = true;
+        params["images"] = ["uploads/0ZDNMLI9E8EZRPG5HDET.nii.gz"];
+    </script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <title>{% block title %}{% endblock %} - WebRYSMA</title>
+
+    {% block head %}
+    {% endblock %}
+  </head>
+  <body>
+    <div >
+        {% block toppage %}
+        <div class="ui two column centered grid">
+            <div style="padding-top: 70px; padding-bottom: 50px;" class="column">
+                <h2 class="ui inverted header">
+                  <i style="font-size: 200%" class="user md icon"></i>
+                  <div class="content">
+                    WebRYSMA
+                    <div class="sub header">Aneurysm Detection and Segmentation</div>
+                  </div>
+                </h2>
+            </div>
+        </div>
+        {% endblock %}
+        
+        {% block content %}
+        {% endblock %}
+  </body>
+</html>
