@@ -4,13 +4,6 @@
   <a href="https://github.com/ethylomat/heiRYSMA">
     <img src="README_LOGO.png" alt="Logo" width="800" height="182">
   </a>
-
-  <h3 align="center">heiRYSMA</h3>
-
-  <p align="center">
-    Aneurysm Detection and Segmentation<br>
-    Project Seminar Biomedical Image Analysis
-  </p>
 </p>
 
 
