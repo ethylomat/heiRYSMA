@@ -3,6 +3,7 @@ import torch
 from tqdm.auto import tqdm
 import os
 import re
+import argparse
 from src.utils.dataloader import AneurysmDataset
 from src.utils.DenseSeg import DenseNetSeg3D
 import numpy as np
@@ -13,12 +14,14 @@ import nibabel as nib
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='heiRYSMA')
-    parser.add_argument('--data', dest='data_path', default=None, help='Absolute path of the data directory')
+    parser.add_argument('--input', dest='data_path', default="/input", help='Absolute path of the input data directory')
+    parser.add_argument('--output', dest='output', default="/output", help='Absolute path of the output data directory')
     parser.add_argument('--model', dest='model_path', default=None, help='Absolute path of the model directory')
     parser.add_argument('--resolution', nargs=3, type=int, dest='resolution', default=[256, 256, 0],
                         help='Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)')
     parser.add_argument('--overlap', type=int, dest='overlap', default=1, help='Overlap for cropping')
     parser.add_argument('--loss', dest='loss_fct', default=None, help='Loss function')
+    arguments = parser.parse_args()
 
     target_resolution = tuple(arguments.resolution)
     data_path = arguments.data_path  # insert absolute path to the single TOF MRA data directory (which includes /input/orig and /output)
@@ -74,6 +77,9 @@ if __name__ == "__main__":
         scores[scores >= 0.5] = 1
 
         scores_arr.append(scores.cpu().detach().numpy())
+        del scores
+        del test_challenge_l
+        del test_challenge_ex
 
     data_shape_reconstruction = (256, 256, data_shape[2].item())
 
@@ -87,4 +93,4 @@ if __name__ == "__main__":
     final_prediction[final_prediction >= 0.5] = 1
 
     nib_final_prediction = nib.Nifti1Image(final_prediction, affine=np.eye(4))
-    nib.save(nib_final_prediction, os.path.join(data_path, 'output', 'result.nii.gz'))
+    nib.save(nib_final_prediction, os.path.join(arguments.output, 'result.nii.gz'))

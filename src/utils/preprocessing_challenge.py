@@ -21,13 +21,11 @@ def load_niigz_as_npy_challenge(data_path):
     """
 
     sub_dirs = [x[0] for x in  os.walk(data_path)]
-    if((os.path.join(data_path, 'input') not in sub_dirs) or (os.path.join(data_path, 'output') not in sub_dirs)):
-        raise ValueError("There is no input and output directory to work with! Check the data directory / data_path to data directory and try again...")
 
-    print('Preprocessing from niigz files in progress...')
-    for dir in sub_dirs:
-        if(dir.endswith('input')):
-            data_orig = nib.load(os.path.join(dir, 'orig', 'TOF.nii.gz')).get_fdata()
+    if(os.path.join(data_path, 'orig') not in sub_dirs):
+        raise ValueError("No orig directory in input directory.")
+
+    data_orig = nib.load(os.path.join(data_path, 'orig', 'TOF.nii.gz')).get_fdata()
 
     print('DONE: niigz data loaded as npy')
     return data_orig
