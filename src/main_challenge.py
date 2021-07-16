@@ -1,8 +1,10 @@
+import argparse
 import torch
 from tqdm.auto import tqdm
 import os
 import re
 import datetime
+import argparse
 from src.utils.dataloader import AneurysmDataset
 from src.utils.DenseSeg import DenseNetSeg3D
 import numpy as np
@@ -74,6 +76,9 @@ def main(data=None, model=None, resolution=[256,256,0], overlap=1, loss=None, we
         scores[scores >= 0.5] = 1
 
         scores_arr.append(scores.cpu().detach().numpy())
+        del scores
+        del test_challenge_l
+        del test_challenge_ex
 
     data_shape_reconstruction = (256, 256, data_shape[2].item())
 
@@ -87,7 +92,7 @@ def main(data=None, model=None, resolution=[256,256,0], overlap=1, loss=None, we
     final_prediction[final_prediction >= 0.5] = 1
 
     nib_final_prediction = nib.Nifti1Image(final_prediction, affine=np.eye(4))
-    nib.save(nib_final_prediction, os.path.join(data_path, 'output', 'result.nii.gz'))
+    nib.save(nib_final_prediction, os.path.join(arguments.output, 'result.nii.gz'))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='heiRYSMA')
