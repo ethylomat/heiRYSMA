@@ -34,7 +34,6 @@
       </ul>
     </li>
     <li><a href="#results">Results</a></li>
-    <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
 
@@ -133,10 +132,3 @@ Model name:  model__DIC__64_64_64__o10__b08__lr0001
 <!-- RESULTS -->
 ## Results
 
-
-
-
-<!-- CONTACT -->
-## Contact
-
-Project Link: [https://github.com/ethylomat/heiRYSMA](https://github.com/ethylomat/heiRYSMA)
