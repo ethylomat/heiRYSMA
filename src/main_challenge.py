@@ -4,7 +4,6 @@ from tqdm.auto import tqdm
 import os
 import re
 import datetime
-import argparse
 from src.utils.dataloader import AneurysmDataset
 from src.utils.DenseSeg import DenseNetSeg3D
 import numpy as np
@@ -96,7 +95,8 @@ def main(data=None, model=None, resolution=[256,256,0], overlap=1, loss=None, we
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='heiRYSMA')
-    parser.add_argument('--data', dest='data_path', default=None, help='Absolute path of the data directory')
+    parser.add_argument('--input', dest='data_path', default="/input", help='Absolute path of the input data directory')
+    parser.add_argument('--output', dest='output', default="/output", help='Absolute path of the output data directory')
     parser.add_argument('--model', dest='model_path', default=None, help='Absolute path of the model directory')
     parser.add_argument('--resolution', nargs=3, type=int, dest='resolution', default=[256, 256, 0],
                         help='Dimension for cropping/resizing (e.g. 64 for dimension 64 x 64 x 64)')
