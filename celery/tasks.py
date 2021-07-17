@@ -20,5 +20,5 @@ def add(x: int, y: int) -> int:
 @celery.task(name='tasks.process')
 def process(sample_id: str) -> str:
     model = "model__BCE__256_256_0__o01__b10__lr0001"
-    main(data=os.path.join("/temp", sample_id), model="/queue/models/" + model, resolution=[256,256,0], overlap=1, loss=None, webapp=True)
+    main(data=os.path.join("/temp", sample_id, "input"), output=os.path.join("/temp", sample_id, "output"), model="/queue/models/" + model, resolution=[256,256,0], overlap=1, loss=None, webapp=True, logdir=os.path.join("/temp", sample_id))
     return sample_id

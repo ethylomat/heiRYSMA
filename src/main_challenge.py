@@ -15,7 +15,7 @@ def logging(data_path, line):
     with open(os.path.join(data_path, "log.txt"), "a") as f:
         f.write(f"{datetime.datetime.now()}: {line} <br>\n")
 
-def main(data=None, model=None, resolution=[256,256,0], overlap=1, loss=None, webapp=False):
+def main(data=None, output=None, model=None, resolution=[256,256,0], overlap=1, loss=None, webapp=False, logdir=None):
     target_resolution = tuple(resolution)
     data_path = data  # insert absolute path to the single TOF MRA data directory (which includes /input/orig and /output)
     overlap = overlap  # has to be 1
@@ -24,8 +24,11 @@ def main(data=None, model=None, resolution=[256,256,0], overlap=1, loss=None, we
     include_resizing = True  # not relevant for challenge
     model_name = model  # model for challenge
 
+    if logdir is None:
+        logdir = data
+
     if webapp:
-        logging(data_path, "Started processing ...")
+        logging(logdir, "Started processing ...")
 
     if loss is not None:
         loss_fct = loss
@@ -62,7 +65,7 @@ def main(data=None, model=None, resolution=[256,256,0], overlap=1, loss=None, we
     data_shape = (0,0,0)
     for test_challenge_step, [test_challenge_ex, test_challenge_l, data_shape] in enumerate(tqdm(test_challenge, desc='Test Challenge')):
         if webapp:
-            logging(data_path, f"Step Number: {test_challenge_step}")
+            logging(logdir, f"Step Number: {test_challenge_step}")
         test_challenge_l = test_challenge_l.to(device)
         test_challenge_ex = test_challenge_ex.to(device)
         test_challenge_ex = test_challenge_ex.double()
@@ -91,7 +94,7 @@ def main(data=None, model=None, resolution=[256,256,0], overlap=1, loss=None, we
     final_prediction[final_prediction >= 0.5] = 1
 
     nib_final_prediction = nib.Nifti1Image(final_prediction, affine=np.eye(4))
-    nib.save(nib_final_prediction, os.path.join(arguments.output, 'result.nii.gz'))
+    nib.save(nib_final_prediction, os.path.join(output, 'result.nii.gz'))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='heiRYSMA')
@@ -103,4 +106,4 @@ if __name__ == "__main__":
     parser.add_argument('--overlap', type=int, dest='overlap', default=1, help='Overlap for cropping')
     parser.add_argument('--loss', dest='loss_fct', default=None, help='Loss function')
     arguments = parser.parse_args()
-    main(data=arguments.data_path, model=arguments.model_path, resolution=arguments.resolution, overlap=arguments.overlap, loss=arguments.loss_fct)
+    main(data=arguments.data_path, output=arguments.output, model=arguments.model_path, resolution=arguments.resolution, overlap=arguments.overlap, loss=arguments.loss_fct)
