@@ -130,10 +130,28 @@ Model name:  model__DIC__64_64_64__o10__b08__lr0001
 <!-- WEBRYSMA -->
 ## WebRYSMA
 
-WebRYSMA is a web application that can be used to run our detection/segmentation tool and visualizing the results in the webbrowser in an interactive way.   
+WebRYSMA is a web application that can be used to run our detection/segmentation tool and visualizing the results in the webbrowser in an interactive way. It allows to upload files in .nii.gz (NIFTI) format which are then processed and displayed with possible aneurysms. The original image and result mask are displayed using the [Papaya](https://github.com/rii-mango/Papaya) JavaScript image viewer.
+
+<p align="center">
+  <a href="https://github.com/ethylomat/heiRYSMA">
+    <img src="doc/img/webapp1.png" width="1000">
+  </a>
+</p>
+
+File upload page for NIFTI images (left), processing page showing progress of segmentation including log (right).
+
+<p align="center">
+  <a href="https://github.com/ethylomat/heiRYSMA">
+    <img src="doc/img/webapp2.png" width="1000">
+  </a>
+</p>
+
+Interactive results page showing the original image (left) and the processed mask indicating possible aneurysms (right).
 
 <!-- WEBRYSMA STRUCTURE -->
 ### WebRYSMA Structure
+
+The WebRYSMA web application consists of different components to process the submitted data. The webserver used for the application is based on the Python [Flask](https://flask.palletsprojects.com/en/2.0.x/) framework. For the asynchronous processing of the data we decided to use [Redis](https://redis.io) as message broker and [Celery](https://docs.celeryproject.org/en/stable/) as a task queue and worker. The Celery workers call the processing routine of our detection.
 
 <p align="center">
   <a href="https://github.com/ethylomat/heiRYSMA">
