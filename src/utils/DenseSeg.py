@@ -130,7 +130,7 @@ class DenseBlock(nn.Module):
         self.n_layers = n_layers
         self.in_channels = in_channels
         self.growth_rate = growth_rate
-        self.dense_layers = []
+        self.dense_layers = nn.ModuleList()
 
         for i in range(self.n_layers):
             model = DenseLayer(int(i * self.growth_rate + self.in_channels), self.growth_rate)
@@ -161,7 +161,7 @@ class DenseLayer(nn.Module):
         self.conv1 = nn.Conv3d(in_channels, in_channels, kernel_size=(1, 1, 1), stride=(1, 1, 1))
         self.conv2 = nn.Conv3d(in_channels, growth_rate, kernel_size=(3, 3, 3), stride=(1, 1, 1),
                                padding=(1, 1, 1))
-        self.drop_out = nn.Dropout(p=0.2)
+        self.drop_out = nn.Dropout(p=0.3)
 
     def forward(self, x):
         # first conv(1x1x1)
