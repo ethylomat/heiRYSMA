@@ -26,6 +26,13 @@
         <li><a href="#evaluation">Evaluation</a></li>
       </ul>
     </li>
+    <li>
+      <a href="#webrysma">WebRYSMA</a>
+      <ul>
+        <li><a href="#webrysma-structure">WebRYSMA Structure</a></li>
+        <li><a href="#running-webrysma">Running WebRYSMA</a></li>
+      </ul>
+    </li>
     <li><a href="#results">Results</a></li>
   </ol>
 </details>
@@ -116,11 +123,37 @@ Model name:  model__DIC__64_64_64__o10__b08__lr0001
 ...
 ```
 
+
 <!-- EVALUATION -->
 ### Evaluation
 
+<!-- WEBRYSMA -->
+## WebRYSMA
 
+WebRYSMA is a web application that can be used to run our detection/segmentation tool and visualizing the results in the webbrowser in an interactive way.   
 
+<!-- WEBRYSMA STRUCTURE -->
+### WebRYSMA Structure
+
+<p align="center">
+  <a href="https://github.com/ethylomat/heiRYSMA">
+    <img src="doc/img/WebRYSMA-structure.png" width="900">
+  </a>
+</p>
+
+<!-- RUNNING WEBRYSMA -->
+### Running WebRYSMA
+
+For running the web application WebRYSMA it is recommended to use [docker](https://docs.docker.com/) and [docker compose](https://docs.docker.com/compose/) to build containers running the application.
+
+After installing docker and docker compose you can start the application by using the following command:
+
+- Example usage:
+```sh
+$ docker-compose up
+```
+
+The web application can be accessed at `http://localhost:5001`, the Celery/Redis task queue can be accessed at `http://localhost:5555`.  
 
 <!-- RESULTS -->
 ## Results
