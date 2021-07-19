@@ -165,7 +165,7 @@ def augment_data(data_orig, data_mask):
         flipVertical_mask = flip(data_mask[i], 0)
         flipHorizontal_mask = flip(data_mask[i], 1)
         rotate180_mask = rotate(data_mask[i], cv2.ROTATE_180)
-        brighter5percent_mask = data_mask[i] + int(data_mask[i].max() * 0.05)
+        brighter5percent_mask = data_mask[i]
         augmented_data_list_mask.append([data_mask[i], flipVertical_mask, flipHorizontal_mask, rotate180_mask, brighter5percent_mask])
 
     augmented_data_list_orig = [item for sublist in augmented_data_list_orig for item in sublist]

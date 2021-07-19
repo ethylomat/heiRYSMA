@@ -50,6 +50,7 @@ class AneurysmDataset(torch.utils.data.Dataset):
         else:
             self.challenge_mode_on = False
             self.data_shape = 0
+            self.data_affine = 0
             if (os.path.isfile(path_data_resized_orig) and os.path.isfile(path_data_resized_mask)):
                 print('Resized / cropped data ' + str(target_resolution) + ' found. Loading in progress...')
                 self.data, self.mask = preprocessing.load_data_from_npy(data_path, resized_file_name_orig, resized_file_name_mask)
@@ -99,6 +100,10 @@ class AneurysmDataset(torch.utils.data.Dataset):
             else:
                 self.data = self.data[int(len(self.data) * 0.85):]
                 self.mask = self.mask[int(len(self.mask) * 0.85):]
+
+            ind_without_bright = np.unique(np.where(self.mask<=2)[0])
+            self.data = self.data[ind_without_bright]
+            self.mask = self.mask[ind_without_bright]
 
 
     def shuffle_data(self, data_path):
