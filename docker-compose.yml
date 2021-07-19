@@ -21,6 +21,9 @@ services:
     depends_on:
       - redis
     volumes: ['./celery:/queue', './temp:/temp', './src:/queue/src', './models:/queue/models']
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
   flower:
     image: mher/flower
     command: ['celery', '--broker=redis://redis:6379/0', 'flower', '--port=5555']
