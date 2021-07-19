@@ -2,7 +2,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/ethylomat/heiRYSMA">
-    <img src="README_LOGO.png" alt="Logo" width="800" height="182">
+    <img src="doc/img/logo.png" alt="Logo" width="800" height="182">
   </a>
 </p>
 
