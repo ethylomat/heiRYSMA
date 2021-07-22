@@ -115,7 +115,7 @@ if __name__ == "__main__":
         models_path = os.path.join(src_dir.parent.resolve(), "models")
 
     target_resolution = tuple(
-        arguments.resolution)  # modify here if other resolution needed, currently available (64, 64, 64) and (128, 128, 100)
+        arguments.resolution)  # modify here if other resolution needed, currently available (64, 64, 64), (128, 128, 100) and (256, 256, 0) | zero meaning 8
     overlap = int(arguments.overlap)  # overlap for cropping
     batch_size = arguments.batch_size
     include_augmented_data = arguments.augmented  # enable if flipped data (vertically + horizonatally), rotated data (180 degrees) and brighter data 5% wanted
@@ -129,7 +129,6 @@ if __name__ == "__main__":
     model_name = f"model__{loss_metric}__{str(target_resolution).replace(', ', '_')[1:-1]}__o{str(overlap).zfill(2)}__b{str(batch_size).zfill(2)}__lr{str(learning_rate).replace('0.', '')}"
     if not include_resizing:
         pass
-        # model_name += "__crop"
 
     model_name_optimizer = model_name + '_optim'
 
@@ -181,20 +180,6 @@ if __name__ == "__main__":
         shuffle=True,
         drop_last=True
     )
-
-    # test = torch.utils.data.DataLoader(
-    #     AneurysmDataset(
-    #         data_path=data_path,
-    #         target_resolution=target_resolution,
-    #         overlap=overlap,
-    #         include_augmented_data=include_augmented_data,
-    #         include_resizing=include_resizing,
-    #         train_eval_test='test'
-    #     ),
-    #     batch_size=batch_size,
-    #     shuffle=True,
-    #     drop_last=True
-    # )
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if torch.cuda.is_available():
