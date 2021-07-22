@@ -13,9 +13,11 @@ class AneurysmDataset(torch.utils.data.Dataset):
         Args:
             data_path (string): Path to dir with all the (not processed) data.
             target_resolution (tuple): 3 positional tuple containing the desired resolution of data, (W,H,Amount Slices) e.g. 64,64,100.
+            overlap (int): amount of pixels for the overlap in the cropping method.
             include_augmented_data (bool): True if augmented data should be included, else otherwise
             include_resizing (bool): True if resized data should be included, else cropping activated
             train_eval_test (string): If train, creates dataset from training set, if eval creates dataset from eval set, otherwise creates from test set.
+            challenge_mode_on (bool): If true, challenge mode is activated, so one nifti image is used, resized, cropped, inputed in the network and afterwards reconstructed for challenge output.
         """
         resized_file_name_orig = 'data_orig_' + str(target_resolution[0]) + '_' + str(target_resolution[1]) + '_' + str(target_resolution[2])
         resized_file_name_mask = 'data_mask_' + str(target_resolution[0]) + '_' + str(target_resolution[1]) + '_' + str(target_resolution[2])
