@@ -78,6 +78,12 @@ def load_data_from_npy(data_path, data_orig_name, data_mask_name, allow_pickle=F
             			Name of the data_orig file name without .npy ending.
     data_mask_name:		String
             			Name of the data_mask file name without .npy ending.
+    allow_pickle:       bool
+                        Allow loading pickled object arrays stored in npy files.
+                        Reasons for disallowing pickles include security,
+                        as loading pickled data can execute arbitrary code.
+                        If pickles are disallowed, loading object arrays will fail.
+                        Default: False
 
     Returns
     -------
@@ -187,11 +193,12 @@ def crop_data(data_orig, data_mask, crop_size_xy, crop_size_z, overlap, include_
                         Crop in the z dim (slices dim). Amount of slices is not dependent on x and y dim.
     overlap             int
                         Overlap for the cropping. We don't want to cut the aneurysms through cropping.
-
+    include_augment     bool
+                        If true, the cropped data which includes aneurysms will be augmented and equal nr of data will be chosen from other set randomly (balanced set is produced).
     Returns
     -------
     cropped_data_orig:	list
-                        List of npy arrays including cropped data and augmented data. Also balancing is involved. So many non aneurysm datasets are there as with aneurysms.
+                        List of npy arrays including cropped data and augmented data. Also balancing is involved if param true. So many non aneurysm datasets are there as with aneurysms.
     cropped_data_mask:	list
                         List of npy arrays including masks corresponding to the cropped_data_orig
     """

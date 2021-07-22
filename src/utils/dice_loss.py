@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class BinaryDiceLoss(nn.Module):
-    """Dice loss of binary class
+    """Dice loss of binary class, implementation used from: https://github.com/hubutui/DiceLoss-PyTorch/blob/master/loss.py
     Args:
         smooth: A float number to smooth loss, and avoid NaN error, default: 1
         p: Denominator value: \sum{x^p} + \sum{y^p}, default: 2
