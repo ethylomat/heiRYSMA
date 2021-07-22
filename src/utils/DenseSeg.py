@@ -128,9 +128,6 @@ class DenseNetSeg3D(nn.Module):
 
 
 class DenseBlock(nn.Module):
-    '''
-    in_channel in this case = growth rate?!
-    '''
 
     def __init__(self, in_channels, n_layers, growth_rate, device, device_ids=[0]):
         super(DenseBlock, self).__init__()
